@@ -1,12 +1,17 @@
 # AarogyaSathi
 
+[![CI](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml)
+
 **A multilingual, retrieval-augmented health-awareness chatbot with built-in claim verification, for WhatsApp and the web.**
 
-Minor project (ES-451) for SIH-25049. It answers preventive-health questions in English, Hindi and Hinglish, checks
-forwarded health claims against curated myths and live web evidence, and escalates emergencies without involving an LLM.
-Built for rural and semi-urban India.
+It answers preventive-health questions in English, Hindi and Hinglish, checks forwarded health claims against curated
+myths and live web evidence, and escalates emergencies without involving an LLM. Built for rural and semi-urban India.
 
 > Awareness system only. It is not a doctor and never diagnoses.
+
+**Origin.** This began as a college minor project (ES-451, SIH-25049). This repository is the standalone version I
+maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
+[salman-mohammad-khan/AarogyaSathi](https://github.com/salman-mohammad-khan/AarogyaSathi).
 
 ![Chat interface](docs/fig2_chat_interface.png)
 
@@ -133,7 +138,7 @@ python -m pytest tests -q   # 72 automated tests
 | Cross-lingual retrieval (15 queries) | 15/15 |
 | Health-claim fact check (34 claims) | 34/34 |
 
-These sets were written by the project team: 14 of the 30 intent queries also appear in the training data, and the
+These sets were written during the project: 14 of the 30 intent queries also appear in the training data, and the
 benchmark thresholds differ from the production settings. Read them as component checks, not as an estimate of
 real-world accuracy or clinical correctness.
 
@@ -188,16 +193,12 @@ scripts/           setup, eval, deploy, smoke tests
 tests/             pytest suite
 ```
 
-## Deliverables
-
-| Item | Location |
-|---|---|
-| Final project report (DOCX and PDF) | `output/report/` (builder in `output/report/source/`) |
-| Second-defense presentation | `output/presentation/` |
-| Research paper (final version) | `output/research/AarogyaSathi_Full_Paper_Revised_v10.*` |
-| Dated verification evidence | `docs/evidence/` |
-
 ## Sources
 
 WHO fact sheets, MoHFW, NHM, IDSP, NTEP and NACO advisories, PIB Fact Check and ICMR, curated for awareness
 purposes. Every answer carries a source list and a medical disclaimer.
+
+## Author
+
+Salman Mohammad Khan, B.Tech CSE (Data Science), Bhagwan Parshuram Institute of Technology (GGSIPU), batch of 2027.
+[LinkedIn](https://www.linkedin.com/in/salman-mohammad-khan-b7879b284/)

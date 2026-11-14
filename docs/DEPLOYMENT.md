@@ -21,7 +21,6 @@ docker compose up --build -d
 2. Create the service from the repo. Build command: `pip install -r requirements.txt && python scripts/build_index.py`. Start command: `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 3. Set environment variables in the dashboard:
    - `OLLAMA_API_KEY` — Ollama Cloud key (used automatically when no local Ollama exists)
-   - `GOOGLE_FACTCHECK_API_KEY` — optional live fact-check
    - `LLM_CLOUD_MODEL=gpt-oss:20b` — cloud model (qwen3:1.7b is not in the cloud catalog)
 4. Health check: `GET /api/health` → `{"llm": {"backend": "cloud"}}`
 

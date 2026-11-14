@@ -6,7 +6,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - OLLAMA_API_KEY=${OLLAMA_API_KEY:-}
-      - GOOGLE_FACTCHECK_API_KEY=${GOOGLE_FACTCHECK_API_KEY:-}
     volumes:
       - ./data:/app/data
       - ollama_models:/root/.ollama

@@ -1,135 +1,39 @@
-# AarogyaSathi Team Collaboration & Contributing Guide
+# Contributing
 
-Welcome to the **AarogyaSathi (आरोग्यसाथी)** development team! This guide outlines our Git workflow, coding standards, branch conventions, and review processes to ensure smooth teamwork.
+Thanks for your interest in AarogyaSathi. Issues and pull requests are welcome.
 
----
+## Set up
 
-## 🚀 Quickstart for Team Members
-
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/salman-mohammad-khan/AarogyaSathi.git
-cd AarogyaSathi
-```
-
-### 2. Set Up Python Virtual Environment
-```bash
-# Windows
+git clone https://github.com/salman-mohammad-khan/aarogyasathi-rag.git
+cd aarogyasathi-rag
 python -m venv venv
-.\venv\Scripts\activate
-
-# macOS / Linux
-python3 -m venv venv
-source venv/bin/activate
-```
-
-### 3. Install Dependencies
-```bash
+source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### 4. Configure Environment Variables
-Copy `.env.example` to `.env`:
-```bash
-# Windows
-copy .env.example .env
-
-# macOS / Linux
-cp .env.example .env
-```
-Open `.env` and fill in your keys (e.g. `OLLAMA_API_KEY`, `GOOGLE_FACTCHECK_API_KEY`).  
-> ⚠️ **NEVER commit or push `.env` to GitHub.**
-
-### 5. Download ML Models (One-Time Setup)
-```bash
-python scripts/setup.py
-```
-
-### 6. Run the App Locally
-```bash
+cp .env.example .env            # optional: add OLLAMA_API_KEY for the hosted LLM tier
+python scripts/setup.py         # one-time model download (LaBSE and the language-id model)
 uvicorn app.main:app --reload --port 8000
 ```
-Open [http://localhost:8000](http://localhost:8000) to test the web interface.
 
----
+Never commit `.env` or any API key.
 
-## 🌿 Git & Branching Strategy
+## Workflow
 
-We follow the **GitHub Flow** with feature branches. **Nobody pushes directly to `main`**.
+- Branch from `main` and open a pull request. Do not push directly to `main`.
+- Name branches `feature/<name>`, `fix/<name>`, `docs/<name>` or `test/<name>`.
+- Use conventional commit messages (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `ci:`).
+- Every pull request runs the test suite in GitHub Actions. Run it locally first:
 
-```
-main (always stable & deployable to Oracle Cloud VM)
-  │
-  ├── feature/whatsapp-webhook      (Teammate A)
-  ├── feature/pincode-directory     (Teammate B)
-  └── fix/symptom-negation          (Teammate C)
-```
-
-### Branch Naming Convention
-Use descriptive branch names with appropriate prefixes:
-- `feature/<name>` : New features or endpoints (e.g., `feature/whatsapp-cloud-api`, `feature/ui-dark-mode`)
-- `fix/<name>`     : Bug fixes (e.g., `fix/fasttext-crash`, `fix/outbreak-rss-timeout`)
-- `docs/<name>`    : Documentation updates (e.g., `docs/api-specs`, `docs/setup-guide`)
-- `test/<name>`    : Adding or updating unit tests (e.g., `test/intent-eval`)
-- `refactor/<name>`: Code restructuring without feature changes
-
-### Daily Workflow
-
-1. **Pull the latest changes from `main`**:
-   ```bash
-   git checkout main
-   git pull origin main
-   ```
-2. **Create your feature branch**:
-   ```bash
-   git checkout -b feature/my-feature-name
-   ```
-3. **Make your changes, test locally**:
-   ```bash
-   pytest tests/
-   ```
-4. **Commit with descriptive messages** (use conventional commits):
-   ```bash
-   git add .
-   git commit -m "feat(whatsapp): implement Meta Cloud API webhook verification"
-   ```
-5. **Push your branch to GitHub**:
-   ```bash
-   git push -u origin feature/my-feature-name
-   ```
-6. **Open a Pull Request (PR)** on GitHub:
-   - Provide a brief summary of your changes.
-   - Request review from at least one teammate.
-   - Ensure tests pass before merging.
-
----
-
-## 📝 Commit Message Guidelines
-
-Use clear, structured commit messages:
-- `feat: ...` for new features or capabilities.
-- `fix: ...` for bug fixes.
-- `docs: ...` for documentation changes.
-- `style: ...` for formatting or CSS changes.
-- `refactor: ...` for code cleanups that don't alter functionality.
-- `test: ...` for adding or improving test coverage.
-
----
-
-## 🧪 Testing Before Pull Request
-
-Always verify your changes before opening a PR:
 ```bash
-# Run test suite
-pytest tests/
-
-# Run benchmark / accuracy eval
-python scripts/eval.py
+python -m pytest tests -q
+python scripts/eval.py          # benchmark report
 ```
 
----
+## Safety changes
 
-## 🛡️ Production Deployment (Oracle Cloud VM)
+Emergency and self-harm handling must stay rule-based and must run before any other routing. Add a regression test in
+`tests/test_safety_routing.py` for any change to `app/core/safety.py`, `app/core/entities.py` or the router order.
 
-The production VM (`130.210.56.87`) runs the code from the `main` branch.  
-Only code that has been reviewed, tested, and merged into `main` should be deployed to the VM.
+## Deploying
+
+Only reviewed code on `main` is deployed. See the Deployment section of the README for `scripts/deploy.sh`.
