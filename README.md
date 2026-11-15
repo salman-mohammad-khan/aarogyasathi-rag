@@ -18,10 +18,8 @@ maintain, with the full commit history. The submitted college version, with its 
 *Left to right: an answer grounded in the knowledge base with its sources, a forwarded claim checked against curated
 myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.*
 
-![Demo preview: a claim check and an emergency response](docs/demo-preview.gif)
-
-*Full 82-second walkthrough: cited answers, claim verification, emergency escalation and the Hindi claim check
-([download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)).*
+**Demo.** The full 82-second walkthrough covers cited answers, claim verification, emergency escalation and the Hindi
+claim check ([download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)).
 
 https://github.com/user-attachments/assets/d9685d68-14fe-4036-9af0-6d14e63ab1db
 
@@ -75,6 +73,10 @@ LLM judge returns structured JSON (verdict, confidence, sources). Otherwise the 
 | Emergency terms (chest pain, snake bite, seizure, ...) | 108 / 112 guidance, checked before everything else |
 | Self-harm phrases | Tele-MANAS (14416 / 1800-891-4416, the national free 24x7 mental health helpline) and 112 |
 | An emergency term together with a fact-check request | Emergency guidance, plus a line telling the user to resend the claim on its own |
+
+![A claim check followed by an emergency response](docs/demo-preview.gif)
+
+*A claim check against the curated myths, then a rule-based emergency response.*
 
 Entity matching uses whole words, so "tb" does not match inside "outbreak" and "fits" does not match inside
 "benefits". Regression tests for these cases are in `tests/test_safety_routing.py`.
