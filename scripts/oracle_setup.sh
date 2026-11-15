@@ -54,7 +54,8 @@ echo "Opening firewall port 8000 (also add an Ingress rule in Oracle console!)."
 ufw allow 8000/tcp || true
 
 echo ""
-echo "DONE. Chat: http://<VM_PUBLIC_IP>:8000 | Dashboard: /admin | Health: /api/health"
+echo "DONE. Chat: http://<VM_PUBLIC_IP>:8000 | Dashboard: /admin (needs ADMIN_TOKEN) | Health: /api/health"
+echo "For a public HTTPS link with your own domain, follow Step 6 in docs/ORACLE_DEPLOY.md."
 echo "NEXT STEPS:"
 echo "  1. Edit /opt/healthbot/.env and add your OLLAMA_API_KEY"
 echo "  2. systemctl restart healthbot"

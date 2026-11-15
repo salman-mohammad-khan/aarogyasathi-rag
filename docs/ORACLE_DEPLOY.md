@@ -49,7 +49,47 @@ sudo systemctl restart healthbot
 curl http://localhost:8000/api/health   # {"llm": {"backend": "local"}}
 ```
 
-Open `http://<PUBLIC_IP>:8000` in your browser — the bot is live on the cloud.
+Open `http://<PUBLIC_IP>:8000` in your browser — the bot is live on the cloud. For a public link, add a domain and
+HTTPS in the next step, then close port 8000.
+
+## Step 6 — HTTPS on your own subdomain (recommended)
+
+Example: `aarogyasathi.example.com` (the live demo uses a subdomain of the author's own domain).
+
+1. **DNS:** add an `A` record named `aarogyasathi` that points to the VM's public IP.
+2. **Oracle security list:** add ingress rules for TCP ports `80` and `443` from `0.0.0.0/0` (like port 8000 in
+   Step 3). Port 80 is needed for the certificate check.
+3. **VM firewall** (Oracle's Ubuntu image blocks them by default):
+
+```bash
+sudo iptables -I INPUT 5 -p tcp --dport 80 -j ACCEPT
+sudo iptables -I INPUT 6 -p tcp --dport 443 -j ACCEPT
+sudo netfilter-persistent save        # keep the rules after a reboot
+```
+
+4. **Caddy** gets and renews a free Let's Encrypt certificate and forwards to the app. Install it from Caddy's
+   apt repository (see https://caddyserver.com/docs/install), then put this in `/etc/caddy/Caddyfile`:
+
+```
+aarogyasathi.example.com {
+	encode gzip
+	reverse_proxy 127.0.0.1:8000 {
+		transport http {
+			response_header_timeout 180s
+		}
+	}
+}
+```
+
+```bash
+sudo systemctl enable --now caddy
+curl -I https://aarogyasathi.example.com/api/health
+```
+
+5. **Admin dashboard:** set `ADMIN_TOKEN` in `/opt/healthbot/.env` (see `.env.example`) and restart the service.
+   Without it the `/admin` data routes are disabled.
+6. **Close port 8000** in the security list and the VM firewall once everything uses the HTTPS address. Caddy still
+   reaches the app on `127.0.0.1:8000`.
 
 ## Managing the machine
 
@@ -73,5 +113,5 @@ oci compute instance action --instance-id <OCID> --action START
 - `OLLAMA_API_KEY` in `.env` auto-falls back to Ollama Cloud (gpt-oss:20b) for
   regional languages or if local fails — same code, no changes
 - systemd keeps the bot running 24/7 (WhatsApp-ready, no cold starts)
-- WhatsApp (Phase 4) later needs HTTPS: add Caddy/nginx + Let's Encrypt on port 443
-  — the webhook will point to the same app
+- WhatsApp needs an HTTPS webhook URL: Step 6 provides it (Caddy + Let's Encrypt on port 443), and the webhook points
+  to the same app
