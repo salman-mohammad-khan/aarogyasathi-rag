@@ -6,7 +6,7 @@ The bot is a plain FastAPI app — it can run anywhere Python 3.12 runs.
 
 ```powershell
 powershell -File scripts\start_dev.ps1        # starts Ollama + server
-# open http://127.0.0.1:8000  (chat)  and  http://127.0.0.1:8000/admin (dashboard)
+# open http://127.0.0.1:8000  (chat)  and  http://127.0.0.1:8000/admin (dashboard; needs ADMIN_TOKEN in .env)
 ```
 
 ## Option 2: Docker

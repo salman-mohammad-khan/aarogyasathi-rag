@@ -170,6 +170,9 @@ A Twilio adapter is included, but SMS delivery has not been verified.
 - **Deploying an update:** `DEPLOY_HOST=ubuntu@<vm-ip> scripts/deploy.sh` runs the tests, backs up the app folder on
   the VM, uploads the committed files, restarts the service, waits for `/api/health`, sends an emergency-message smoke
   test and rolls back automatically if anything fails. Use `--dry-run` to preview.
+- **Admin dashboard:** `/admin` and the surveillance routes need the `ADMIN_TOKEN` secret from your private `.env`
+  (see `.env.example`). The dashboard asks for it once per browser tab. If `ADMIN_TOKEN` is unset, those routes are
+  disabled. The chat API and `/api/health` stay public.
 - **CI:** `.github/workflows/ci.yml` runs the test suite on every push to `main` and on every pull request.
 - **Docker:** `docker compose up -d`. Generic cloud (Render, Railway): see `docs/DEPLOYMENT.md`.
 
