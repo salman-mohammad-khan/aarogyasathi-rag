@@ -18,10 +18,10 @@ maintain, with the full commit history. The submitted college version, with its 
 *Left to right: an answer grounded in the knowledge base with its sources, a forwarded claim checked against curated
 myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.*
 
-[![Demo preview: a claim check and an emergency response](docs/demo-preview.gif)](docs/demo.mp4)
+![Demo preview: a claim check and an emergency response](docs/demo-preview.gif)
 
-*Preview above. [Watch the full 82-second walkthrough](docs/demo.mp4): cited answers, claim verification,
-emergency escalation and the Hindi claim check.*
+*Preview above. [Download the full 82-second walkthrough](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)
+(MP4, 3.7 MB): cited answers, claim verification, emergency escalation and the Hindi claim check.*
 
 ## What it does
 
