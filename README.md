@@ -13,7 +13,10 @@ myths and live web evidence, and escalates emergencies without involving an LLM.
 maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
 [salman-mohammad-khan/AarogyaSathi](https://github.com/salman-mohammad-khan/AarogyaSathi).
 
-![Chat interface](docs/fig2_chat_interface.png)
+![A cited answer, a claim check and an emergency response in the web chat](docs/screenshots.png)
+
+*Left to right: an answer grounded in the knowledge base with its sources, a forwarded claim checked against curated
+myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.*
 
 ## What it does
 
