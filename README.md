@@ -9,6 +9,8 @@ myths and live web evidence, and escalates emergencies without involving an LLM.
 
 > Awareness system only. It is not a doctor and never diagnoses.
 
+**Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (hosted on an Oracle Cloud free-tier VM).
+
 **Origin.** This began as a college minor project (ES-451, SIH-25049). This repository is the standalone version I
 maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
 [salman-mohammad-khan/AarogyaSathi](https://github.com/salman-mohammad-khan/AarogyaSathi).
