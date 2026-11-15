@@ -18,6 +18,11 @@ maintain, with the full commit history. The submitted college version, with its 
 *Left to right: an answer grounded in the knowledge base with its sources, a forwarded claim checked against curated
 myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.*
 
+[![Demo preview: a claim check and an emergency response](docs/demo-preview.gif)](docs/demo.mp4)
+
+*Preview above. [Watch the full 82-second walkthrough](docs/demo.mp4): cited answers, claim verification,
+emergency escalation and the Hindi claim check.*
+
 ## What it does
 
 - **Answers health questions** from a curated knowledge base (14 diseases, 35 FAQs, 13 vaccines) with sources from
