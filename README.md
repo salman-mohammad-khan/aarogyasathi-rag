@@ -20,8 +20,10 @@ myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.
 
 ![Demo preview: a claim check and an emergency response](docs/demo-preview.gif)
 
-*Preview above. [Download the full 82-second walkthrough](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)
-(MP4, 3.7 MB): cited answers, claim verification, emergency escalation and the Hindi claim check.*
+*Full 82-second walkthrough: cited answers, claim verification, emergency escalation and the Hindi claim check
+([download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)).*
+
+https://github.com/user-attachments/assets/d9685d68-14fe-4036-9af0-6d14e63ab1db
 
 ## What it does
 
