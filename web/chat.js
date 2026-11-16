@@ -5,6 +5,19 @@ const sendBtn = document.getElementById("sendBtn");
 const pincodeInput = document.getElementById("pincodeInput");
 
 const SLOW_NOTICE_MS = 4000;
+// Instant answers (rules, myth matches) would appear before the eye can follow, so the
+// typing indicator is shown for at least this long. Slower answers are not delayed further.
+const MIN_REPLY_MS = 600;
+const MAX_REPLY_MS = 1000;
+const GREETING_DELAY_MS = 800;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function replyDelay() {
+  return MIN_REPLY_MS + Math.random() * (MAX_REPLY_MS - MIN_REPLY_MS);
+}
 const DISCLAIMER_STARTS = ["I provide health AWARENESS", "मैं केवल सत्यापित स्रोतों"];
 
 let sessionId = null;
@@ -165,10 +178,13 @@ async function sendMessage(text) {
   addUser(msg);
   userInput.value = "";
   sendBtn.disabled = true;
+  const startedAt = Date.now();
   const typing = addTyping();
   try {
     await bootDone;
     const data = await postChat(msg);
+    const remaining = replyDelay() - (Date.now() - startedAt);
+    if (remaining > 0) await sleep(remaining);
     typing.remove();
     addBot(data);
   } catch (err) {
@@ -206,4 +222,17 @@ bootDone = (async function boot() {
       await postChat(greeting);
     } catch (e) {}
   }
+})();
+
+// The opening greeting appears after a short typing indicator, like every other reply.
+(function openingGreeting() {
+  const first = chatArea.querySelector(".msg.bot");
+  if (!first) return;
+  first.remove();
+  const typing = addTyping();
+  setTimeout(() => {
+    typing.remove();
+    chatArea.insertBefore(first, chatArea.firstChild);
+    scrollBottom();
+  }, GREETING_DELAY_MS);
 })();
