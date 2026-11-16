@@ -2,7 +2,6 @@ const chatArea = document.getElementById("chatArea");
 const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
-const pincodeInput = document.getElementById("pincodeInput");
 
 const SLOW_NOTICE_MS = 4000;
 // Instant answers (rules, myth matches) would appear before the eye can follow, so the
@@ -162,7 +161,7 @@ async function postChat(message) {
   const res = await fetch("/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message, session_id: sessionId, pincode: pincodeInput.value.trim() || null }),
+    body: JSON.stringify({ message, session_id: sessionId }),
   });
   if (!res.ok) throw new Error("HTTP " + res.status);
   return res.json();
