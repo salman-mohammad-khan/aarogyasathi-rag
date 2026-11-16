@@ -3,7 +3,12 @@ const chatForm = document.getElementById("chatForm");
 const userInput = document.getElementById("userInput");
 const sendBtn = document.getElementById("sendBtn");
 
-const SLOW_NOTICE_MS = 4000;
+// A slow written answer shows what is happening instead of a bare spinner.
+const SLOW_STAGES = [
+  [4000, "Checking the verified sources…"],
+  [9000, "Writing the answer from the sources. The model runs locally, so this can take a few seconds."],
+  [16000, "Still writing. Longer answers can take up to 20 seconds."],
+];
 // Instant answers (rules, myth matches) would appear before the eye can follow, so the
 // typing indicator is shown for at least this long. Slower answers are not delayed further.
 const MIN_REPLY_MS = 600;
@@ -150,11 +155,13 @@ function addTyping() {
   wrap.appendChild(bubble);
   chatArea.appendChild(wrap);
   scrollBottom();
-  const timer = setTimeout(() => {
-    bubble.textContent = "Still working. Written answers can take up to 20 seconds on this small free server.";
-    scrollBottom();
-  }, SLOW_NOTICE_MS);
-  return { remove: () => { clearTimeout(timer); wrap.remove(); } };
+  const timers = SLOW_STAGES.map(([ms, text]) =>
+    setTimeout(() => {
+      bubble.textContent = text;
+      scrollBottom();
+    }, ms)
+  );
+  return { remove: () => { timers.forEach(clearTimeout); wrap.remove(); } };
 }
 
 async function postChat(message) {
