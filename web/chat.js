@@ -156,6 +156,7 @@ async function postChat(message) {
 }
 
 let busy = false;
+let bootDone = Promise.resolve();
 
 async function sendMessage(text) {
   const msg = String(text || "").trim();
@@ -166,6 +167,7 @@ async function sendMessage(text) {
   sendBtn.disabled = true;
   const typing = addTyping();
   try {
+    await bootDone;
     const data = await postChat(msg);
     typing.remove();
     addBot(data);
@@ -195,11 +197,13 @@ chatForm.addEventListener("submit", (e) => {
   sendMessage(userInput.value);
 });
 
-// The server prepends its long welcome to a session's first reply, so the session is
-// greeted quietly here. The page shows its own short opening bubble instead of a
-// visible "hi" from the user.
-(async function boot() {
-  try {
-    await postChat("hi");
-  } catch (e) {}
+// The server prepends its long welcome to a session's first reply in each language,
+// so the session is greeted quietly in English and Hindi. The page shows its own
+// short opening bubble instead of a visible greeting from the user.
+bootDone = (async function boot() {
+  for (const greeting of ["hi", "नमस्ते"]) {
+    try {
+      await postChat(greeting);
+    } catch (e) {}
+  }
 })();
