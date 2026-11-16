@@ -1,3 +1,11 @@
+"""Prototype symptom-spike detector. Not part of the public bot.
+
+It counts symptom mentions per pincode and raises an alert when the last 24 hours reach
+SPIKE_MIN_COUNT events and exceed SPIKE_RATIO times the 7-day baseline. The public page no
+longer asks for a pincode and WhatsApp carries none, so it only receives data from API callers
+that send `pincode`. A meaningful signal would need many real users per area. The admin page
+shows its output; the bot never presents it to users as an outbreak alert.
+"""
 import sqlite3
 import threading
 import time

@@ -184,18 +184,7 @@ def stats():
 
 @app.get("/api/surveillance/alerts", dependencies=[Depends(require_admin)])
 def surveillance_alerts():
-    db_alerts = syndromic.active_alerts()
-    kb_items = []
-    for a in kb.alerts():
-        kb_items.append(
-            {
-                "source": "advisory",
-                "title": a["title"].get("en", ""),
-                "body": a["body"].get("en", ""),
-                "source_name": a["source"]["name"],
-            }
-        )
-    return {"spike_alerts": db_alerts, "official_advisories": kb_items}
+    return {"spike_alerts": syndromic.active_alerts()}
 
 
 @app.post("/api/surveillance/run", dependencies=[Depends(require_admin)])

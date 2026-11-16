@@ -10,7 +10,7 @@ def load():
     if _DB is not None:
         return _DB
     _DB = {}
-    for name in ["diseases", "vaccines", "faq", "myths", "alerts", "messages"]:
+    for name in ["diseases", "vaccines", "faq", "myths", "messages"]:
         with open(KB_DIR / f"{name}.json", encoding="utf-8") as f:
             _DB[name] = json.load(f)
     return _DB
@@ -30,10 +30,6 @@ def faqs():
 
 def myths():
     return load()["myths"]["myths"]
-
-
-def alerts():
-    return load()["alerts"]["alerts"]
 
 
 def vaccine_summary():

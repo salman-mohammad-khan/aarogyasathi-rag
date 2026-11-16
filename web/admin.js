@@ -76,14 +76,6 @@ async function refresh() {
         <td>${a.baseline}</td><td class="sev-${a.severity}">${a.severity.toUpperCase()}</td><td>${when}</td>`;
       tbody.appendChild(tr);
     });
-
-    const ul = document.getElementById("advisories");
-    ul.innerHTML = "";
-    alerts.official_advisories.forEach((a) => {
-      const li = document.createElement("li");
-      li.innerHTML = `<b>${a.title}</b> — ${a.body}<br/><small>${a.source_name}</small>`;
-      ul.appendChild(li);
-    });
   } catch (e) {
     console.error(e);
     showBlocked(e.message);

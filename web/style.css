@@ -203,7 +203,6 @@ a:hover { text-decoration: underline; }
 }
 .input-area input:focus { border-color: var(--accent); }
 .input-area input::placeholder { color: #7f929c; }
-#pincodeInput { flex: 0 0 128px; width: 128px; font-size: 12.5px; }
 .input-area button {
   flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%; border: none; background: var(--accent);
   color: var(--accent-ink); font-size: 17px; cursor: pointer;
@@ -270,7 +269,6 @@ a:hover { text-decoration: underline; }
   .steps { grid-template-columns: 1fr; }
   .safety-row { grid-template-columns: 1fr; gap: 4px; }
   .tour-tag { display: none; }
-  #pincodeInput { flex-basis: 96px; width: 96px; }
   .chat-card { height: 560px; min-height: 480px; }
 }
 @media (prefers-reduced-motion: reduce) {

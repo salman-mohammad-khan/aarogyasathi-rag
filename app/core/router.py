@@ -2,7 +2,7 @@ import re
 
 from app import config
 from app.config import INTENT_CONFIDENCE_THRESHOLD
-from app.core import embeddings, entities, generator, intent, kb, language, outbreaks, retriever, safety, websearch
+from app.core import embeddings, entities, generator, intent, kb, language, retriever, safety, websearch
 from app.core import session as session_store
 from app.factcheck import verifier
 
@@ -150,14 +150,14 @@ CAPABILITIES_TEXT = {
     "en": (
         "Capabilities: 1) Disease information (symptoms, prevention, first aid) "
         "2) Symptom guidance 3) Prevention and hygiene tips 4) Vaccination schedules (UIP) "
-        "5) Health outbreak alerts 6) Fact-checking forwarded health messages with verdicts "
+        "5) Fact-checking forwarded health messages with verdicts "
         "VERIFIED / MYTH / PARTLY TRUE / UNVERIFIABLE. "
         "Grounded in WHO and MoHFW content. Not a doctor, never diagnoses."
     ),
     "hi": (
         "क्षमताएँ: 1) बीमारियों की जानकारी (लक्षण, बचाव, प्राथमिक उपचार) "
         "2) लक्षणों पर मार्गदर्शन 3) बचाव और स्वच्छता सुझाव 4) टीकाकरण कार्यक्रम (UIP) "
-        "5) बीमारी प्रकोप की चेतावनियाँ 6) फॉरवर्ड किए स्वास्थ्य संदेशों की सच्चाई जाँच - "
+        "5) फॉरवर्ड किए स्वास्थ्य संदेशों की सच्चाई जाँच - "
         "सत्य / भ्रांति / आंशिक सत्य / पुष्टि असंभव। "
         "WHO और MoHFW की जानकारी पर आधारित। डॉक्टर नहीं है, निदान कभी नहीं करता।"
     ),
@@ -360,25 +360,6 @@ def _vaccine_response(text, lang):
     return summary.get(lang, summary["en"]), "\n".join(lines), "UIP, MoHFW"
 
 
-def _alerts_response(lang):
-    items = kb.alerts()
-    if not items:
-        return kb.msg(lang, "alerts_none"), None, None
-    lines = []
-    context_lines = []
-    sources = []
-    for a in items:
-        title = a["title"].get(lang, a["title"].get("en", ""))
-        body = a["body"].get(lang, a["body"].get("en", ""))
-        lines.append(f"[ALERT] {title}")
-        lines.append(body)
-        lines.append(f"Source: {a['source']['name']}")
-        context_lines.append(f"Alert: {title}. {body}")
-        sources.append(a["source"]["name"])
-    lines.append(safety.disclaimer(lang))
-    return "\n".join(context_lines), "\n".join(lines), ", ".join(sources)
-
-
 def _faq_answer(faq_id, lang):
     for f in kb.faqs():
         if f["id"] == faq_id:
@@ -402,42 +383,13 @@ def _disease_answer(disease_id, lang, question, focus=None):
     return None, None
 
 
-def _outbreak_response(text, lang, pincode):
-    pin = pincode or outbreaks.extract_pincode(text)
-    if not pin:
-        actives = outbreaks.active_outbreaks()
-        lines = ["Current health advisories (sample data - verify with official sources):"]
-        for o in actives[:6]:
-            adv = o["advisory"].get(lang, o["advisory"].get("en"))
-            lines.append(f"- {o['disease'].title()}: {adv[:150]}")
-        lines.append("\nSend your 6-digit pincode for location-specific alerts, e.g. 'alerts near 110001'.")
-        lines.append(safety.disclaimer(lang))
-        return "\n".join(lines)
-    matched, loc = outbreaks.match_outbreaks(pin)
-    lines = []
-    if matched:
-        for o in matched:
-            sev = o.get("severity", "advisory").upper()
-            adv = o["advisory"].get(lang, o["advisory"].get("en"))
-            lines.append(f"[{sev}] {o['disease'].title()}: {adv}")
-            lines.append(f"Source: {o['source']['name']}")
-    else:
-        place = loc["district"] or loc["state"] or "your area"
-        lines.append(f"No major outbreak advisory for {place} right now.")
-        lines.append("Keep preventive habits: safe water, mosquito control, hand hygiene.")
-    if matched:
-        disease = matched[0]["disease"]
-        state = loc["state"] or ""
-        news = outbreaks.search_news(f"{disease} outbreak {state} India", 3)
-        if news:
-            lines.append("\nLatest news:")
-            for n in news[:3]:
-                lines.append(f"- {n['title']} ({n['source']})")
-    lines.append(safety.disclaimer(lang))
-    return "\n".join(lines)
+def _outbreak_response(lang):
+    # The bot has no live outbreak feed, so it says so and points to the official sources
+    # instead of showing advisories it cannot stand behind.
+    return kb.msg(lang, "outbreak_no_data") + "\n" + safety.disclaimer(lang)
 
 
-def _route_by_understanding(u, text, lang, session, pincode):
+def _route_by_understanding(u, text, lang, session):
     intent_type = (u.get("intent") or "").lower()
     symptoms = u.get("symptoms") or []
     disease = u.get("disease")
@@ -459,8 +411,7 @@ def _route_by_understanding(u, text, lang, session, pincode):
         answer, gen = _llm_wrap(context, text, lang, fallback, sources)
         return {"text": answer, "meta": {"intent": "vaccination", "lang": lang, "generator": gen}}
     if intent_type == "outbreak":
-        answer = _outbreak_response(text, lang, pincode)
-        return {"text": answer, "meta": {"intent": "outbreak", "lang": lang}}
+        return {"text": _outbreak_response(lang), "meta": {"intent": "outbreak", "lang": lang}}
     if intent_type in ("disease_info", "prevention"):
         disease_id = disease or entities.find_disease(text)
         if disease_id:
@@ -500,7 +451,7 @@ def _route_by_understanding(u, text, lang, session, pincode):
     return None
 
 
-def _try_fast_path(text, lang, session, pincode):
+def _try_fast_path(text, lang, session):
     """
     Sub-5ms fast path using local TF-IDF intent prediction and regex entity matching.
     Bypasses LLM Call #1 (understand_message) when confident, cutting latency from ~8s to ~3s.
@@ -552,6 +503,11 @@ def _try_fast_path(text, lang, session, pincode):
     if intent_name == "language_switch":
         return {"text": kb.msg(lang, "language_switch"), "meta": {"intent": "language_switch", "lang": lang, "route": "fast_path"}}
 
+    # 3b. Outbreak / alert questions. This comes before the disease card, otherwise
+    # "any dengue alert near me?" would be answered as plain dengue information.
+    if intent_name == "outbreak":
+        return {"text": _outbreak_response(lang), "meta": {"intent": "outbreak", "lang": lang, "route": "fast_path"}}
+
     # 4. Disease info & prevention
     if disease_id or intent_name in ("disease_info", "prevention"):
         d_id = disease_id or entities.find_disease(text)
@@ -587,19 +543,6 @@ def _try_fast_path(text, lang, session, pincode):
         context, fallback, sources = _vaccine_response(text, lang)
         answer, gen = _llm_wrap(context, text, lang, fallback, sources)
         return {"text": answer, "meta": {"intent": "vaccination", "lang": lang, "generator": gen, "route": "fast_path"}}
-
-    # 7. Outbreaks
-    if intent_name == "outbreak":
-        answer = _outbreak_response(text, lang, pincode)
-        pin = pincode or outbreaks.extract_pincode(text)
-        meta = {"intent": "outbreak", "lang": lang, "route": "fast_path"}
-        if pin:
-            _, loc = outbreaks.match_outbreaks(pin)
-            meta["pincode"] = pin
-            if loc:
-                meta["district"] = loc["district"]
-                meta["state"] = loc["state"]
-        return {"text": answer, "meta": meta}
 
     return None
 
@@ -677,7 +620,7 @@ def process_message(text, pincode=None, session=None):
         lang = "hi"
 
     welcomed = session.get("welcomed_langs") or []
-    result = _process_message_core(text, pincode, session)
+    result = _process_message_core(text, session)
     session.set("welcomed_langs", welcomed)
 
     intent = result["meta"].get("intent")
@@ -693,7 +636,7 @@ def process_message(text, pincode=None, session=None):
     return result
 
 
-def _process_message_core(text, pincode=None, session=None):
+def _process_message_core(text, session=None):
     text = (text or "").strip()
     if not text:
         return {"text": kb.msg("en", "help"), "meta": {}}
@@ -757,7 +700,7 @@ def _process_message_core(text, pincode=None, session=None):
             }
 
     # --- FAST PATH (Sub-5ms TF-IDF & Entity Routing) ---
-    fast_result = _try_fast_path(text, lang, session, pincode)
+    fast_result = _try_fast_path(text, lang, session)
     if fast_result is not None:
         return fast_result
 
@@ -766,7 +709,7 @@ def _process_message_core(text, pincode=None, session=None):
     extra_ctx = f"Conversation summary: {summary}\n" if summary else ""
     u = generator.understand_message(text, lang, extra_ctx=extra_ctx)
     if u is not None:
-        handled = _route_by_understanding(u, text, lang, session, pincode)
+        handled = _route_by_understanding(u, text, lang, session)
         if handled is not None:
             return handled
 
@@ -848,16 +791,7 @@ def _process_message_core(text, pincode=None, session=None):
         return {"text": answer, "meta": {"intent": "vaccination", "lang": lang, "generator": gen}}
 
     if intent_name == "outbreak":
-        answer = _outbreak_response(text, lang, pincode)
-        pin = pincode or outbreaks.extract_pincode(text)
-        meta = {"intent": "outbreak", "lang": lang}
-        if pin:
-            _, loc = outbreaks.match_outbreaks(pin)
-            meta["pincode"] = pin
-            if loc:
-                meta["district"] = loc["district"]
-                meta["state"] = loc["state"]
-        return {"text": answer, "meta": meta}
+        return {"text": _outbreak_response(lang), "meta": {"intent": "outbreak", "lang": lang}}
 
     symptoms = entities.find_symptoms(text) if not _is_info_question(text) else []
     if symptoms:

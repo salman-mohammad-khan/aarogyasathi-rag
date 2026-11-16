@@ -35,7 +35,9 @@ https://github.com/user-attachments/assets/d9685d68-14fe-4036-9af0-6d14e63ab1db
 - **Guides symptom reports** with one clarifying question (duration, fever, vomiting) before listing possible
   conditions. It understands negation ("no fever") and never diagnoses.
 - **Looks up vaccination schedules** (UIP) by age or pregnancy, and individual vaccines.
-- **Tracks outbreaks** with pincode-tagged query spikes against a 7-day baseline (syndromic surveillance).
+- **Has no live outbreak feed**, so it does not show area alerts. An outbreak question gets an honest "no live data"
+  answer that points to the NCDC (IDSP) weekly reports and the state health department. A pincode symptom-spike
+  detector exists only as an admin-side prototype (see Project layout).
 - **Works across languages**: LaBSE cross-lingual embeddings understand English, Hindi, Hinglish and regional
   languages (Telugu, Tamil and Kannada were tested).
 
@@ -54,7 +56,7 @@ FastAPI backend ──► router
                       │ 5. LaBSE cross-lingual retrieval over the curated KB
                       │ 6. RAG generation (LLM tiers with template fallback, grounded in KB context)
                       ▼
-        KB (diseases / vaccines / FAQ / myths / alerts, EN+HI) + sources
+        KB (diseases / vaccines / FAQ / myths, EN+HI) + sources
 ```
 
 **Retrieval.** Entries are embedded with LaBSE (mean pooling, L2-normalised, cached on disk) and ranked by cosine
@@ -134,7 +136,7 @@ Optional cloud inference: copy `.env.example` to `.env` and set `OLLAMA_API_KEY`
 ```bash
 curl -X POST http://127.0.0.1:8000/api/chat \
   -H "Content-Type: application/json" \
-  -d '{"message": "dengue ke lakshan kya hain", "pincode": "110001"}'
+  -d '{"message": "dengue ke lakshan kya hain"}'
 ```
 
 Response: `{reply, intent, language, latency_ms, llm_backend, factcheck}`.
@@ -143,7 +145,7 @@ Response: `{reply, intent, language, latency_ms, llm_backend, factcheck}`.
 
 ```powershell
 python scripts/eval.py      # benchmark report
-python -m pytest tests -q   # 72 automated tests
+python -m pytest tests -q   # 78 automated tests
 ```
 
 | Suite | Result |
@@ -202,8 +204,8 @@ A Twilio adapter is included, but SMS delivery has not been verified.
 app/core/          NLP: language, embeddings, intent, entities, retriever, safety, router, generator
 app/factcheck/     myth-vs-fact verifier (verdict scores, source tiers)
 app/channels/      Meta WhatsApp Cloud API webhook, Twilio adapter, simulator endpoint
-app/surveillance/  syndromic early warning (pincode symptom counts vs a 7-day baseline)
-data/kb/           curated knowledge base (diseases, vaccines, faq, myths, alerts, messages)
+app/surveillance/  prototype spike detector (pincode symptom counts vs a 7-day baseline); admin-only, not fed by the page
+data/kb/           curated knowledge base (diseases, vaccines, faq, myths, messages)
 data/training/     intent training examples and a held-out eval set
 web/               WhatsApp-style demo UI
 scripts/           setup, eval, deploy, smoke tests
