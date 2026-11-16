@@ -5,19 +5,25 @@
 # Options (environment variables):
 #   DEPLOY_HOST    required, e.g. ubuntu@203.0.113.10 (not stored in the repo on purpose)
 #   DEPLOY_KEY     SSH private key, default ~/.ssh/id_ed25519
-#   APP_DIR        app folder on the VM, default /opt/healthbot
-#   SERVICE        systemd unit name, default healthbot
+#   APP_DIR        app folder on the VM, default /opt/healthbot-mine (the portfolio copy on port 8001)
+#   SERVICE        systemd unit name, default healthbot-mine
+#   PORT           port the service listens on, default 8001 (used by the health check and smoke test)
 #   BACKUP_DIR     where backups are written on the VM, default /opt/healthbot-backups
 #   HEALTH_TIMEOUT seconds to wait for the service after restart, default 240 (the model reload is slow)
 #   SKIP_TESTS     set to 1 to skip the local test run
+#
+# The VM runs two copies. /opt/healthbot (port 8000, service healthbot) is the frozen group minor-project
+# version, tag minor-project-final, and must not receive new work. To redeploy that tag on purpose, check it
+# out in a separate worktree and set APP_DIR=/opt/healthbot SERVICE=healthbot PORT=8000.
 #
 # Only committed files are deployed (git archive), so uncommitted edits never reach the VM.
 set -euo pipefail
 
 DEPLOY_HOST="${DEPLOY_HOST:?Set DEPLOY_HOST, e.g. DEPLOY_HOST=ubuntu@<vm-ip>}"
 DEPLOY_KEY="${DEPLOY_KEY:-$HOME/.ssh/id_ed25519}"
-APP_DIR="${APP_DIR:-/opt/healthbot}"
-SERVICE="${SERVICE:-healthbot}"
+APP_DIR="${APP_DIR:-/opt/healthbot-mine}"
+SERVICE="${SERVICE:-healthbot-mine}"
+PORT="${PORT:-8001}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/healthbot-backups}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-240}"
 DRY_RUN=0
@@ -57,12 +63,12 @@ rollback() {
 
 wait_healthy() {
   "${SSH[@]}" "for i in \$(seq 1 $((HEALTH_TIMEOUT / 5))); do
-    curl -fsS -m 5 http://127.0.0.1:8000/api/health >/dev/null && exit 0; sleep 5; done; exit 1"
+    curl -fsS -m 5 http://127.0.0.1:$PORT/api/health >/dev/null && exit 0; sleep 5; done; exit 1"
 }
 
 smoke_test() {
   # An emergency message must produce the emergency template (it contains the 108 ambulance number).
-  "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:8000/api/chat \
+  "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
     -H 'Content-Type: application/json' \
     -d '{\"message\":\"my father has chest pain\",\"session_id\":\"deploy-smoke\"}'" | grep -q '108'
 }
