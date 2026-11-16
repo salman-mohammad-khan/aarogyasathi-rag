@@ -677,6 +677,15 @@ def _process_message_core(text, session=None):
     if text.strip().lower() in ("hi", "hello", "hey", "namaste", "namaskar", "नमस्ते", "नमस्कार", "हैलो", "हाय"):
         return {"text": kb.msg(lang, "greeting"), "meta": {"intent": "greeting", "lang": lang}}
 
+    # Medicine dose questions get a fixed reply. The bot never advises on doses, and without this rule the
+    # question was read as a symptom report and the model invented symptoms and diseases.
+    if entities.is_dose_question(text):
+        session.clear()
+        return {
+            "text": kb.msg(lang, "dose_question") + "\n" + safety.disclaimer(lang),
+            "meta": {"intent": "dose_question", "lang": lang, "route": "rule"},
+        }
+
     active_flow = session.get("symptom_flow")
     if active_flow is not None:
         flow_intent, _ = intent.predict_intent(text, INTENT_CONFIDENCE_THRESHOLD)
