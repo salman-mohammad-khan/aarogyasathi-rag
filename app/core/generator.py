@@ -294,26 +294,33 @@ def bedrock_configured():
     return bool(_bedrock_key())
 
 
-def _bedrock_generate(system_prompt, user_prompt):
+def generate_hosted(system_prompt, user_prompt, max_tokens, timeout, model_id=None):
+    """A short, strict call to the hosted model only (no local fallback). None when Bedrock is not configured or fails."""
+    if not bedrock_configured():
+        return None
+    return _bedrock_generate(system_prompt, user_prompt, max_tokens=max_tokens, timeout=timeout, model_id=model_id)
+
+
+def _bedrock_generate(system_prompt, user_prompt, max_tokens=None, timeout=None, model_id=None):
     """One Converse call to Amazon Bedrock. Returns the text, or None on any failure."""
     global _bedrock_failures, _bedrock_cooldown_until
     if time.time() < _bedrock_cooldown_until:
         return None
     url = (
         f"https://bedrock-runtime.{BEDROCK_REGION}.amazonaws.com/model/"
-        f"{quote(BEDROCK_MODEL_ID, safe='')}/converse"
+        f"{quote(model_id or BEDROCK_MODEL_ID, safe='')}/converse"
     )
     payload = {
         "system": [{"text": system_prompt}],
         "messages": [{"role": "user", "content": [{"text": user_prompt}]}],
-        "inferenceConfig": {"maxTokens": BEDROCK_MAX_TOKENS, "temperature": LLM_TEMPERATURE},
+        "inferenceConfig": {"maxTokens": max_tokens or BEDROCK_MAX_TOKENS, "temperature": LLM_TEMPERATURE},
     }
     headers = {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + _bedrock_key(),
     }
     try:
-        resp = httpx.post(url, json=payload, headers=headers, timeout=BEDROCK_TIMEOUT_S)
+        resp = httpx.post(url, json=payload, headers=headers, timeout=timeout or BEDROCK_TIMEOUT_S)
         if resp.status_code != 200:
             raise RuntimeError(f"HTTP {resp.status_code}")
         blocks = resp.json()["output"]["message"]["content"]

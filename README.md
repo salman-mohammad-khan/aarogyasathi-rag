@@ -91,6 +91,27 @@ each round the misses were fixed and pinned as regression tests in `tests/test_e
 wording will still be missed. When in doubt a rule fires, because a false alarm shows a helpline and a miss can cost a
 life. The page tells users to call 108 or 112 themselves.
 
+**Second safety layer.** When a Bedrock key is set, a short model call (`app/core/safety_llm.py`) reads every
+message the word rules left alone and can still raise the emergency or self-harm reply. It runs in the background while
+the normal reply is prepared, only ever adds an alarm (a rule is never cancelled), skips plain greetings, gives up after
+2.5 s, and does nothing if the model is down. Message text is never logged. Switch it off with `SAFETY_LLM_CHECK=false`.
+`scripts/safety_llm_eval.py` reproduces the numbers below. On 82 fresh messages (36 emergencies, 14 self-harm, 16
+information questions, 16 ordinary), one run each, written by me and including a few Marathi, Tamil and Bengali lines I
+cannot judge myself:
+
+| | Emergencies caught | Self-harm caught | Information questions left alone | Ordinary left alone |
+|---|---|---|---|---|
+| Word rules alone | 17 / 36 | 6 / 14 | 9 / 16 | 16 / 16 |
+| Gemma 3 27B alone | 36 / 36 | 14 / 14 | 15 / 16 | 16 / 16 |
+| gpt-oss 20B alone | 36 / 36 | 14 / 14 | 16 / 16 | 16 / 16 |
+| Rules, then Gemma (what the chat does) | 36 / 36 | 14 / 14 | 8 / 16 | 16 / 16 |
+
+The combined row shows the cost of letting the rules keep the last word: their false alarms on information questions
+stay. The model caught every emergency the rules caught on these sets, but 82 messages is a small sample, so a rule
+is still never overridden. It is not a guarantee; the page keeps its "call 108 or 112" line. Each check is about 500
+input tokens (roughly $0.15 per 1,000 messages at Gemma's price, my estimate), and Bedrock allows 100 requests per
+minute per model on this account, shared with the answers.
+
 Entity matching uses whole words, so "tb" does not match inside "outbreak" and "fits" does not match inside
 "benefits". Regression tests for these cases are in `tests/test_safety_routing.py`.
 

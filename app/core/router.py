@@ -2,7 +2,7 @@ import re
 
 from app import config
 from app.config import INTENT_CONFIDENCE_THRESHOLD
-from app.core import embeddings, entities, generator, intent, kb, language, retriever, safety, websearch
+from app.core import embeddings, entities, generator, intent, kb, language, retriever, safety, safety_llm, websearch
 from app.core import session as session_store
 from app.factcheck import verifier
 
@@ -609,6 +609,16 @@ def _is_info_question(text):
     )
 
 
+def _model_safety_result(text, lang, label):
+    """The same emergency or helpline reply the rules give, raised by the model check instead."""
+    lang = safety.emergency_language(text, lang)
+    reply = safety.self_harm_response(lang) if label == "SELF_HARM" else safety.emergency_response(lang, [])
+    return {
+        "text": reply,
+        "meta": {"intent": "emergency", "flow": "llm_safety", "red_flags": [], "lang": lang, "model_label": label},
+    }
+
+
 def process_message(text, pincode=None, session=None):
     text = (text or "").strip()
     if not text:
@@ -620,12 +630,19 @@ def process_message(text, pincode=None, session=None):
         lang = "hi"
 
     welcomed = session.get("welcomed_langs") or []
+    # The second safety check runs in the background while the normal reply is prepared.
+    safety_check = safety_llm.start(text)
     result = _process_message_core(text, session)
     session.set("welcomed_langs", welcomed)
 
     intent = result["meta"].get("intent")
     if intent == "emergency":
-        return result
+        return result  # the word rules already fired; the model is never consulted and never overrides them
+    label = safety_llm.result(safety_check)
+    if label in ("EMERGENCY", "SELF_HARM"):
+        session.clear()
+        session.set("welcomed_langs", welcomed)
+        return _model_safety_result(text, lang, label)
     if lang not in welcomed:
         if intent not in ("greeting", "language_switch"):
             welcome = kb.msg(lang, "greeting")

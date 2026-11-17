@@ -50,6 +50,16 @@ BEDROCK_MAX_TOKENS = int(os.environ.get("BEDROCK_MAX_TOKENS", "400"))
 # The default is "templates" because the 1.7B local model invented vaccine and treatment advice in testing.
 BEDROCK_FALLBACK = os.environ.get("BEDROCK_FALLBACK", "templates")
 
+# Second safety layer: when the rules find no emergency, a short hosted-model call reads the message and may still raise
+# the emergency or self-harm reply. It only ever ADDS an alarm and runs only when a Bedrock key is set. Set to false to
+# switch it off.
+SAFETY_LLM_CHECK = os.environ.get("SAFETY_LLM_CHECK", "true").lower() in ("1", "true", "yes")
+SAFETY_LLM_TIMEOUT_S = float(os.environ.get("SAFETY_LLM_TIMEOUT_S", "2.5"))
+SAFETY_LLM_MAX_TOKENS = int(os.environ.get("SAFETY_LLM_MAX_TOKENS", "40"))
+# Optional different Bedrock model for the check (empty = the main model). A reasoning model such as
+# openai.gpt-oss-20b-1:0 needs SAFETY_LLM_MAX_TOKENS around 900.
+SAFETY_LLM_MODEL_ID = os.environ.get("SAFETY_LLM_MODEL_ID", "")
+
 FACTCHECK_SEARCH_MAX_RESULTS = int(os.environ.get("FACTCHECK_SEARCH_MAX_RESULTS", "5"))
 FACTCHECK_SEARCH_TIMEOUT_S = int(os.environ.get("FACTCHECK_SEARCH_TIMEOUT_S", "8"))
 
