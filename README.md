@@ -74,13 +74,22 @@ LLM judge returns structured JSON (verdict, confidence, sources). Otherwise the 
 
 | Message | Response |
 |---|---|
-| Emergency terms (chest pain, snake bite, seizure, ...) | 108 / 112 guidance, checked before everything else |
-| Self-harm phrases | Tele-MANAS (14416 / 1800-891-4416, the national free 24x7 mental health helpline) and 112 |
+| Emergency wordings (chest pain, not breathing, heavy bleeding, poisoning, snake bite, seizure, ...) in English, Hindi and Hinglish | 108 / 112 guidance, checked before everything else |
+| Self-harm wordings in English, Hindi and Hinglish | Tele-MANAS (14416 / 1800-891-4416, the national free 24x7 mental health helpline) and 112 |
+| A question about a topic ("how to prevent a heart attack", "stroke kya hota hai") | An information answer, not the emergency reply |
 | An emergency term together with a fact-check request | Emergency guidance, plus a line telling the user to resend the claim on its own |
 
 ![A claim check followed by an emergency response](docs/demo-preview.gif)
 
 *A claim check against the curated myths, then a rule-based emergency response.*
+
+**Limits of the emergency rules.** They are word lists and patterns, not understanding, and they cover English, Hindi
+and Hinglish only (no Tamil, Bengali, Marathi or the other listed languages). In two rounds of fresh test sentences,
+written after the rules were widened and measured before any fix, they caught about 55-60% of emergency wordings and
+20-40% of self-harm wordings they had never seen, and wrongly flagged about 40% of fresh information questions. After
+each round the misses were fixed and pinned as regression tests in `tests/test_emergency_coverage.py`, so a new
+wording will still be missed. When in doubt a rule fires, because a false alarm shows a helpline and a miss can cost a
+life. The page tells users to call 108 or 112 themselves.
 
 Entity matching uses whole words, so "tb" does not match inside "outbreak" and "fits" does not match inside
 "benefits". Regression tests for these cases are in `tests/test_safety_routing.py`.

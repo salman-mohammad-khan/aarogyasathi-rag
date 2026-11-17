@@ -43,6 +43,9 @@ _HINGLISH_MARKERS = frozenset((
     "seene", "sine", "chhati", "saap", "saanp", "kaat", "kaata", "liya", "gaya", "gayi", "nahi", "bahut", "bohot",
     "turant", "jaldi", "madad", "bachao", "behosh", "saans", "khoon", "zahar", "jahar", "bukhar",
     "hoon", "chahta", "chahti", "marna", "jeene", "jeena", "zindagi", "khatam", "mann", "khudkushi",
+    "jaun", "jaan", "mar", "maar", "accha", "achha", "khud", "fayda", "dena", "zeher", "zahar", "jahar", "tel",
+    "jhatke", "sans", "khoon", "nikal", "tedha", "bichhu", "bachcha", "bacche", "bache", "dikkat", "hosh", "lakwa",
+    "daura", "ulti", "bijli", "jhatka", "mitti",
 ))
 _WORD_RE = re.compile(r"[a-z]+")
 

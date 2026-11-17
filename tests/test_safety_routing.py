@@ -290,3 +290,34 @@ def test_snake_bite_keeps_its_first_aid_tip_before_the_helplines():
 
 def test_languages_without_a_tip_text_get_the_plain_emergency_reply():
     assert safety.emergency_response("ta", ["snake_bite"]) == safety.emergency_response("ta")
+
+
+# --- widened emergency and self-harm wordings reach the right reply through the router --------------------------
+
+@pytest.mark.parametrize("text", [
+    "my baby is not breathing",
+    "bachcha saans nahi le raha",
+    "बच्चा सांस नहीं ले रहा है",
+    "she took 20 sleeping pills",
+])
+def test_widened_emergency_wordings_get_the_ambulance_reply(text):
+    r = router.process_message(text, session=_fresh_session("sr_wide_emergency"))
+    assert r["meta"]["intent"] == "emergency"
+    assert "108" in r["text"]
+
+
+@pytest.mark.parametrize("text", [
+    "I feel like killing myself",
+    "mar jaun to accha hai",
+    "मैं आत्महत्या करना चाहती हूँ",
+])
+def test_widened_self_harm_wordings_get_the_mental_health_helpline(text):
+    r = router.process_message(text, session=_fresh_session("sr_wide_self_harm"))
+    assert r["meta"]["intent"] == "emergency"
+    assert "14416" in r["text"]
+
+
+@pytest.mark.parametrize("text", ["how to prevent a heart attack", "stroke kya hota hai"])
+def test_questions_about_an_emergency_topic_are_not_answered_as_emergencies(text):
+    r = router.process_message(text, session=_fresh_session("sr_info_question"))
+    assert r["meta"]["intent"] != "emergency"
