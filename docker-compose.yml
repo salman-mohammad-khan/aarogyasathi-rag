@@ -6,6 +6,9 @@ services:
     environment:
       - PYTHONPATH=/app
       - OLLAMA_API_KEY=${OLLAMA_API_KEY:-}
+      - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK:-}
+      - BEDROCK_REGION=${BEDROCK_REGION:-ap-south-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-google.gemma-3-27b-it}
     volumes:
       - ./data:/app/data
       - ollama_models:/root/.ollama

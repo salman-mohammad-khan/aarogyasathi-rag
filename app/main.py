@@ -69,6 +69,10 @@ def _warmup_llm():
     import threading
     import time
 
+    # No local model to warm up when answers come from Bedrock only.
+    if generator.bedrock_configured() and config.BEDROCK_FALLBACK != "local":
+        return
+
     def _run():
         import httpx
         for _ in range(12):
@@ -119,7 +123,7 @@ def health():
         "models": "loaded",
         "llm": {
             "backend": generator.backend(),
-            "model": config.LLM_CLOUD_MODEL if generator.backend() == "cloud" else config.LLM_MODEL,
+            "model": generator.model_name(),
         },
         "languages": config.SUPPORTED_LANGUAGES,
     }

@@ -40,6 +40,16 @@ LLM_TEMPERATURE = 0.1
 LLM_MAX_TOKENS = 200
 LLM_CLOUD_MAX_TOKENS = int(os.environ.get("LLM_CLOUD_MAX_TOKENS", "600"))
 
+# Optional hosted tier on Amazon Bedrock. It is used only when AWS_BEARER_TOKEN_BEDROCK (a Bedrock API key) is set
+# in the environment. The key is read at call time and is never stored here.
+BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "ap-south-1")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "google.gemma-3-27b-it")
+BEDROCK_TIMEOUT_S = int(os.environ.get("BEDROCK_TIMEOUT_S", "20"))
+BEDROCK_MAX_TOKENS = int(os.environ.get("BEDROCK_MAX_TOKENS", "400"))
+# What to do when a Bedrock call fails: "templates" (fixed answers from the knowledge base) or "local" (Ollama).
+# The default is "templates" because the 1.7B local model invented vaccine and treatment advice in testing.
+BEDROCK_FALLBACK = os.environ.get("BEDROCK_FALLBACK", "templates")
+
 FACTCHECK_SEARCH_MAX_RESULTS = int(os.environ.get("FACTCHECK_SEARCH_MAX_RESULTS", "5"))
 FACTCHECK_SEARCH_TIMEOUT_S = int(os.environ.get("FACTCHECK_SEARCH_TIMEOUT_S", "8"))
 
