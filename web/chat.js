@@ -70,6 +70,7 @@ function parseReply(text) {
 }
 
 function routeLabel(d) {
+  if (d.intent === "emergency" && d.flow === "llm_safety") return "Safety check by the model (the word rules found nothing)";
   if (d.intent === "emergency") return "Safety rule, no LLM";
   if (d.factcheck) return "Fact check against curated myths";
   if (d.generator === "llm") return "LLM, answering from the retrieved entry";

@@ -77,7 +77,7 @@
           <li><b>64</b><span>curated myths</span></li>
           <li><b>14</b><span>diseases</span></li>
           <li><b>13</b><span>vaccines</span></li>
-          <li><b>83</b><span>automated tests</span></li>
+          <li><b>130</b><span>automated tests</span></li>
         </ul>
       </div>
 
@@ -112,8 +112,8 @@
           </form>
         </div>
         <p class="chat-note">
-          Myth checks and emergency replies are instant. Written answers come from a local model on the server
-          and can take up to 20 seconds. Not medical advice.
+          Myth checks and emergency replies are instant. Written answers come from an AI model and can take a few
+          seconds. Not medical advice.
         </p>
         <p class="chat-note">
           <strong>In an emergency call 108 or 112 now.</strong> The bot recognises common emergency and self-harm
@@ -183,13 +183,13 @@
         <div class="proof-card"><b>30 / 30</b><span>intent queries (EN, HI, Hinglish)</span></div>
         <div class="proof-card"><b>15 / 15</b><span>cross-lingual retrieval queries</span></div>
         <div class="proof-card"><b>34 / 34</b><span>health claims fact-checked</span></div>
-        <div class="proof-card"><b>83</b><span>automated tests, run in CI on every push</span></div>
+        <div class="proof-card"><b>130</b><span>automated tests, run in CI on every push</span></div>
       </div>
       <div class="limits">
         <h3>Known limits</h3>
         <ul>
-          <li>The knowledge base is small, so out-of-scope questions get an honest "I don't have reliable information".</li>
-          <li>The demo runs a 1.7B local model on two CPU cores, so written answers are slow and plainer than a hosted model.</li>
+          <li>The knowledge base is small. For a health question outside it the bot may answer from the model's general knowledge and says so, or says it has no reliable information.</li>
+          <li>Written answers come from Gemma 3 27B on Amazon Bedrock. If it is unavailable the bot answers from fixed templates.</li>
           <li>It gives awareness information only. It never diagnoses or prescribes.</li>
         </ul>
       </div>
