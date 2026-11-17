@@ -1,10 +1,17 @@
+import logging
 import os
 import re
 import time
+from urllib.parse import quote
 
 import httpx
 
 from app.config import (
+    BEDROCK_FALLBACK,
+    BEDROCK_MAX_TOKENS,
+    BEDROCK_MODEL_ID,
+    BEDROCK_REGION,
+    BEDROCK_TIMEOUT_S,
     LLM_CLOUD_MAX_TOKENS,
     LLM_CLOUD_MODEL,
     LLM_CLOUD_TIMEOUT_S,
@@ -15,10 +22,19 @@ from app.config import (
     OLLAMA_URL,
 )
 
+log = logging.getLogger(__name__)
+
 OLLAMA_CLOUD_URL = "https://ollama.com/api/chat"
 
 _local_cooldown_until = 0.0
 _last_backend = None
+
+# Bedrock is skipped for a short while only after several failures in a row, so one slow call does not
+# switch the hosted model off for every user.
+_BEDROCK_MAX_FAILURES = 3
+_BEDROCK_COOLDOWN_S = 30
+_bedrock_failures = 0
+_bedrock_cooldown_until = 0.0
 
 SYSTEM_PROMPT = (
     "You are AarogyaSathi, a public-health awareness assistant for rural India. "
@@ -202,7 +218,7 @@ def is_available():
     global _availability
     if _availability is not None:
         return _availability
-    _availability = _local_ok() or bool(os.environ.get("OLLAMA_API_KEY"))
+    _availability = bedrock_configured() or _local_ok() or bool(os.environ.get("OLLAMA_API_KEY"))
     return _availability
 
 
@@ -231,11 +247,63 @@ def last_backend():
 
 
 def backend():
+    if bedrock_configured():
+        return "bedrock"
     if _local_ok():
         return "local"
     if os.environ.get("OLLAMA_API_KEY"):
         return "cloud"
     return None
+
+
+def model_name():
+    """Name of the model behind the active backend, for the health endpoint."""
+    active = backend()
+    if active == "bedrock":
+        return BEDROCK_MODEL_ID
+    if active == "cloud":
+        return LLM_CLOUD_MODEL
+    return LLM_MODEL
+
+
+def bedrock_configured():
+    return bool(os.environ.get("AWS_BEARER_TOKEN_BEDROCK"))
+
+
+def _bedrock_generate(system_prompt, user_prompt):
+    """One Converse call to Amazon Bedrock. Returns the text, or None on any failure."""
+    global _bedrock_failures, _bedrock_cooldown_until
+    if time.time() < _bedrock_cooldown_until:
+        return None
+    url = (
+        f"https://bedrock-runtime.{BEDROCK_REGION}.amazonaws.com/model/"
+        f"{quote(BEDROCK_MODEL_ID, safe='')}/converse"
+    )
+    payload = {
+        "system": [{"text": system_prompt}],
+        "messages": [{"role": "user", "content": [{"text": user_prompt}]}],
+        "inferenceConfig": {"maxTokens": BEDROCK_MAX_TOKENS, "temperature": LLM_TEMPERATURE},
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + os.environ.get("AWS_BEARER_TOKEN_BEDROCK", ""),
+    }
+    try:
+        resp = httpx.post(url, json=payload, headers=headers, timeout=BEDROCK_TIMEOUT_S)
+        if resp.status_code != 200:
+            raise RuntimeError(f"HTTP {resp.status_code}")
+        blocks = resp.json()["output"]["message"]["content"]
+        text = "".join(b.get("text", "") for b in blocks).strip()
+    except Exception as exc:
+        # Only the exception type and status are logged, never the request, so the API key cannot leak.
+        _bedrock_failures += 1
+        log.warning("Bedrock call failed (%s: %s), %d in a row", type(exc).__name__, exc, _bedrock_failures)
+        if _bedrock_failures >= _BEDROCK_MAX_FAILURES:
+            _bedrock_cooldown_until = time.time() + _BEDROCK_COOLDOWN_S
+            _bedrock_failures = 0
+        return None
+    _bedrock_failures = 0
+    return text or None
 
 
 def _post(url, payload, headers=None, timeout=LLM_TIMEOUT_S):
@@ -255,6 +323,14 @@ def generate(system_prompt, user_prompt, prefer_cloud=False):
     if not is_available():
         _last_backend = None
         return None
+    if bedrock_configured():
+        result = _bedrock_generate(system_prompt, user_prompt)
+        if result:
+            _last_backend = "bedrock"
+            return result
+        if BEDROCK_FALLBACK != "local":
+            _last_backend = None
+            return None
     options = {
         "temperature": LLM_TEMPERATURE,
         "num_predict": LLM_MAX_TOKENS,

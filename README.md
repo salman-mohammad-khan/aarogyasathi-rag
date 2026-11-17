@@ -89,13 +89,21 @@ Entity matching uses whole words, so "tb" does not match inside "outbreak" and "
 
 Implemented in `app/core/generator.py`:
 
-1. If `OLLAMA_API_KEY` is set, try Ollama Cloud first (`LLM_CLOUD_MODEL`, default `gpt-oss:20b`).
-2. If the cloud call fails (no credits, bad key, quota, timeout), try local Ollama (`LLM_MODEL`, default
+1. If `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key) is set, Amazon Bedrock answers first
+   (`BEDROCK_MODEL_ID`, default `google.gemma-3-27b-it` in `ap-south-1`). If a call fails, the bot answers from
+   deterministic templates by default. Set `BEDROCK_FALLBACK=local` to use local Ollama instead. Bedrock is skipped
+   for 30 s only after 3 failures in a row.
+2. Without a Bedrock key: if `OLLAMA_API_KEY` is set, try Ollama Cloud first (`LLM_CLOUD_MODEL`, default
+   `gpt-oss:20b`).
+3. If the cloud call fails (no credits, bad key, quota, timeout), try local Ollama (`LLM_MODEL`, default
    `qwen3:1.7b`). A local failure sets a 60 s cooldown for that tier.
-3. If both fail, answer from deterministic templates.
+4. If every tier fails, answer from deterministic templates.
 
-`/api/health` reports the active backend and every chat response includes `llm_backend`. The hosted tier needs
+`/api/health` reports the active backend and every chat response includes `llm_backend`. The Ollama hosted tier needs
 account credits: without them it answers HTTP 402 and the bot uses the local model.
+
+Why templates and not the local model after a Bedrock failure: in my own testing the 1.7B local model gave wrong
+vaccine and treatment advice, which fixed template answers do not. That test set is not in this repository yet.
 
 ## Tech stack
 
@@ -104,7 +112,7 @@ account credits: without them it answers HTTP 402 and the bot uses the local mod
 | API | Python 3.12, FastAPI, Uvicorn, Pydantic |
 | Embeddings and retrieval | LaBSE (Hugging Face Transformers), NumPy |
 | Classic NLP | scikit-learn (TF-IDF + Logistic Regression), fastText language ID |
-| LLMs | Ollama: Qwen3-1.7B (local), gpt-oss-20b (hosted) |
+| LLMs | Amazon Bedrock: Gemma 3 27B (optional, main); Ollama: Qwen3-1.7B (local), gpt-oss-20b (hosted) |
 | Live evidence | DuckDuckGo search (`ddgs`) with a whitelisted-domain filter |
 | Channels | Web chat UI, Meta WhatsApp Cloud API webhook, Twilio adapter |
 | Data | JSON knowledge base, SQLite for surveillance events |
@@ -128,8 +136,9 @@ Ollama and the server together. Docker: `docker compose up -d`.
 
 Memory: LaBSE fp16 ~1 GB, Qwen3-1.7B Q4 ~1.6 GB, Python ~0.5 GB, about 3 GB in total.
 
-Optional cloud inference: copy `.env.example` to `.env` and set `OLLAMA_API_KEY` (from ollama.com, needs credits).
-`python scripts/test_cloud.py` prints which backend answers.
+Optional cloud inference: copy `.env.example` to `.env` and set `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key from the
+AWS console) or `OLLAMA_API_KEY` (from ollama.com, needs credits). `python scripts/test_cloud.py` prints which backend
+answers.
 
 ## API
 
