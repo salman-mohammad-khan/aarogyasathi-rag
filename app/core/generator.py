@@ -67,7 +67,8 @@ PROBE_SYSTEM_PROMPT = (
     "You are collecting one small detail before sharing awareness information. "
     "Rules: 1) Ask exactly ONE short, empathetic question. "
     "2) Maximum 25 words. "
-    "3) Use the requested language (Hindi in Devanagari script if the user writes Hinglish). "
+    "3) Use ONLY the language named in the request (English, or Hindi in Devanagari script when the "
+    "request says Hindi). Never add a translation or a second language. "
     "4) Do not give any health advice yet. "
     "5) Do not repeat the user's words back."
 )
@@ -113,7 +114,9 @@ SYMPTOM_ANALYSIS_SYSTEM_PROMPT = (
     "3. If the user said they do NOT have a symptom (e.g. no fever), acknowledge that and do not suggest it.\n"
     "4. Keep it calm and non-alarming. Do not prescribe medicines or dosages.\n"
     "5. End with the context's own advice on when to see a doctor.\n"
-    "6. Answer in the requested language (Hindi in Devanagari). Maximum 90 words."
+    "6. Answer ONLY in the language named in the request (English, or Hindi in Devanagari when the "
+    "request says Hindi). Never add a translation or a second language. Maximum 90 words.\n"
+    "7. Plain text only. Never use markdown: no asterisks, no bold, no headings."
 )
 
 
@@ -266,6 +269,22 @@ def model_name():
     return LLM_MODEL
 
 
+_PREAMBLE = re.compile(
+    r"^(?:here(?:'s|’s| is| are)|sure|okay|certainly|of course|below is)\b"
+    r"[^\n]{0,120}\b(?:analysis|response|answer|reply|translation|rules)\b[^\n]{0,60}:[ \t]*\n+",
+    re.IGNORECASE,
+)
+_TRANSLATION_NOTE = re.compile(r"\s*\**\(\s*(?:translation|roughly translat\w*)\b.*?\)\**", re.IGNORECASE | re.DOTALL)
+
+
+def _strip_meta(text):
+    """Remove model chatter that is not part of the answer: a first line such as "Here's the analysis in Hindi,
+    following all the rules:" and "(Translation: ...)" notes. Normal lead-ins like "Here are the symptoms:" stay."""
+    text = _PREAMBLE.sub("", text.strip(), count=1)
+    text = _TRANSLATION_NOTE.sub("", text)
+    return text.strip()
+
+
 def _bedrock_key():
     # A pasted key can carry a byte-order mark or a trailing newline, which makes the HTTP header invalid.
     return os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip().lstrip("﻿").strip()
@@ -308,7 +327,7 @@ def _bedrock_generate(system_prompt, user_prompt):
             _bedrock_failures = 0
         return None
     _bedrock_failures = 0
-    return text or None
+    return _strip_meta(text) or None
 
 
 def _post(url, payload, headers=None, timeout=LLM_TIMEOUT_S):

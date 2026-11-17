@@ -146,6 +146,38 @@ def test_empty_reply_is_not_counted_as_a_failure(monkeypatch):
     assert generator._bedrock_cooldown_until == 0.0
 
 
+@pytest.mark.parametrize(
+    "raw, expected",
+    [
+        ("Here's the analysis in Hindi, following all the rules:\n\nआपको बुखार है।", "आपको बुखार है।"),
+        ("Here's my response:\n\nक्या आपको उल्टी है?", "क्या आपको उल्टी है?"),
+        ("Here is the answer:\nDrink ORS.", "Drink ORS."),
+        ("How many days?\n\n(Translation: For how many days?)", "How many days?"),
+        ("How many days?\n\n**(Roughly translates to: how long?)**", "How many days?"),
+        # normal lead-ins and ordinary text must be left alone
+        ("Here are the symptoms:\n- fever\n- rash", "Here are the symptoms:\n- fever\n- rash"),
+        ("Drink plenty of fluids (water, ORS).", "Drink plenty of fluids (water, ORS)."),
+    ],
+)
+def test_strip_meta_removes_chatter_only(raw, expected):
+    assert generator._strip_meta(raw) == expected
+
+
+def test_bedrock_reply_is_cleaned_and_empty_after_cleaning_is_none(monkeypatch):
+    body = {"output": {"message": {"content": [{"text": "Here's my response:\n\nOnly this."}]}}}
+    fake_post(monkeypatch, [FakeResp(body=body)])
+    assert generator.generate("s", "u") == "Only this."
+    body = {"output": {"message": {"content": [{"text": "(Translation: nothing else)"}]}}}
+    fake_post(monkeypatch, [FakeResp(body=body)])
+    assert generator.generate("s", "u") is None
+
+
+def test_symptom_prompts_do_not_push_the_model_into_hindi():
+    for prompt in (generator.PROBE_SYSTEM_PROMPT, generator.SYMPTOM_ANALYSIS_SYSTEM_PROMPT):
+        assert "second language" in prompt
+        assert "English" in prompt
+
+
 def test_backend_and_model_name_report_bedrock():
     assert generator.backend() == "bedrock"
     assert generator.model_name() == generator.BEDROCK_MODEL_ID
