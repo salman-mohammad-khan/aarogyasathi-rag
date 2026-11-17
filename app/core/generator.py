@@ -266,8 +266,13 @@ def model_name():
     return LLM_MODEL
 
 
+def _bedrock_key():
+    # A pasted key can carry a byte-order mark or a trailing newline, which makes the HTTP header invalid.
+    return os.environ.get("AWS_BEARER_TOKEN_BEDROCK", "").strip().lstrip("﻿").strip()
+
+
 def bedrock_configured():
-    return bool(os.environ.get("AWS_BEARER_TOKEN_BEDROCK"))
+    return bool(_bedrock_key())
 
 
 def _bedrock_generate(system_prompt, user_prompt):
@@ -286,7 +291,7 @@ def _bedrock_generate(system_prompt, user_prompt):
     }
     headers = {
         "Content-Type": "application/json",
-        "Authorization": "Bearer " + os.environ.get("AWS_BEARER_TOKEN_BEDROCK", ""),
+        "Authorization": "Bearer " + _bedrock_key(),
     }
     try:
         resp = httpx.post(url, json=payload, headers=headers, timeout=BEDROCK_TIMEOUT_S)

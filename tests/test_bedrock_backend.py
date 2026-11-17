@@ -59,6 +59,14 @@ def test_request_shape_and_text(monkeypatch):
     assert call["timeout"] == generator.BEDROCK_TIMEOUT_S
 
 
+def test_key_with_bom_or_newline_is_cleaned(monkeypatch):
+    monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", "﻿" + KEY + "\r\n")
+    calls = fake_post(monkeypatch, [FakeResp()])
+    assert generator.generate("s", "u") == "Hello from the model."
+    assert calls[0]["headers"]["Authorization"] == "Bearer " + KEY
+    calls[0]["headers"]["Authorization"].encode("ascii")  # must be a valid HTTP header value
+
+
 def test_model_id_with_colon_is_url_encoded(monkeypatch):
     monkeypatch.setattr(generator, "BEDROCK_MODEL_ID", "qwen.qwen3-32b-v1:0")
     calls = fake_post(monkeypatch, [FakeResp()])
