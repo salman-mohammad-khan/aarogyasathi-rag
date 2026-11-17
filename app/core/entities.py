@@ -175,6 +175,30 @@ def contains_alias(text_lower, alias):
     return find_alias(text_lower, alias) != -1
 
 
+# A question about how much or how often to take a medicine needs both a medicine word and a dose cue.
+# Naming only a medicine ("is paracetamol used for dengue?") is not a dose question.
+MEDICINE_TERMS = [
+    "paracetamol", "acetaminophen", "crocin", "dolo", "calpol", "ibuprofen", "brufen", "aspirin", "disprin",
+    "combiflam", "diclofenac", "antibiotic", "amoxicillin", "azithromycin", "cetirizine",
+    "tablet", "pill", "capsule", "syrup", "medicine", "medication",
+    "dawa", "dawai", "goli",
+    "पैरासिटामोल", "दवा", "दवाई", "गोली", "टैबलेट", "सिरप",
+]
+DOSE_CUES = [
+    "dose", "dosage", "overdose", "how many", "how much", "how often", "times a day", "times per day",
+    "per day", "a day", "daily", "maximum", "max", "mg",
+    "kitni baar", "kitna", "kitne", "kitni", "khurak", "din mein", "din me",
+    "खुराक", "मात्रा", "कितनी", "कितना", "कितने", "दिन में", "बार",
+]
+
+
+def is_dose_question(text):
+    text_lower = text.lower()
+    return any(contains_alias(text_lower, m) for m in MEDICINE_TERMS) and any(
+        contains_alias(text_lower, c) for c in DOSE_CUES
+    )
+
+
 def _is_negated(text_lower, pos):
     prefix = text_lower[max(0, pos - 30) : pos]
     words = prefix.replace(",", " ").replace(".", " ").split()

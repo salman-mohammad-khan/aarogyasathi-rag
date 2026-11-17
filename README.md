@@ -154,7 +154,7 @@ Response: `{reply, intent, language, latency_ms, llm_backend, factcheck}`.
 
 ```powershell
 python scripts/eval.py      # benchmark report
-python -m pytest tests -q   # 78 automated tests
+python -m pytest tests -q   # 83 automated tests
 ```
 
 | Suite | Result |
