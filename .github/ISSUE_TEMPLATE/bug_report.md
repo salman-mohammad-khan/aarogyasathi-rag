@@ -24,4 +24,4 @@ If applicable, add screenshots or terminal logs to help explain your problem.
 **Environment:**
 - OS: [e.g. Windows 11, Ubuntu 24.04]
 - Python Version: [e.g. 3.11]
-- LLM Backend: [Local Qwen3 / Ollama Cloud gpt-oss]
+- LLM Backend: [Amazon Bedrock (Gemma 3 27B) / Ollama Cloud gpt-oss / Local Qwen3 / templates only]

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 APP_DIR="/opt/healthbot"
-REPO_URL="${REPO_URL:-https://github.com/salman-mohammad-khan/AarogyaSathi.git}"
+REPO_URL="${REPO_URL:-https://github.com/salman-mohammad-khan/aarogyasathi-rag.git}"
 
 echo "[1/8] Updating system..."
 apt-get update -y
@@ -57,7 +57,7 @@ echo ""
 echo "DONE. Chat: http://<VM_PUBLIC_IP>:8000 | Dashboard: /admin (needs ADMIN_TOKEN) | Health: /api/health"
 echo "For a public HTTPS link with your own domain, follow Step 6 in docs/ORACLE_DEPLOY.md."
 echo "NEXT STEPS:"
-echo "  1. Edit /opt/healthbot/.env and add your OLLAMA_API_KEY"
+echo "  1. Edit /opt/healthbot/.env and add AWS_BEARER_TOKEN_BEDROCK (main model); OLLAMA_API_KEY is an optional fallback"
 echo "  2. systemctl restart healthbot"
 echo "  3. Oracle console -> Networking -> VCN -> Security List -> add Ingress TCP 8000 (0.0.0.0/0)"
 echo "  4. Check logs: journalctl -u healthbot -f"
