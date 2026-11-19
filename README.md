@@ -9,7 +9,7 @@ myths and live web evidence, and escalates emergencies without involving an LLM.
 
 > Awareness system only. It is not a doctor and never diagnoses.
 
-**Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (hosted on an Oracle Cloud free-tier VM).
+**Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (hosted on an Oracle Cloud free-tier VM; answers come from Gemma 3 27B on Amazon Bedrock).
 
 **Origin.** This began as a college minor project (ES-451, SIH-25049). This repository is the standalone version I
 maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
@@ -96,7 +96,7 @@ message the word rules left alone and can still raise the emergency or self-harm
 the normal reply is prepared, only ever adds an alarm (a rule is never cancelled), skips plain greetings, gives up after
 2.5 s, and does nothing if the model is down. Message text is never logged. Switch it off with `SAFETY_LLM_CHECK=false`.
 `scripts/safety_llm_eval.py` reproduces the numbers below. On 82 fresh messages (36 emergencies, 14 self-harm, 16
-information questions, 16 ordinary), one run each, written by me and including a few Marathi, Tamil and Bengali lines I
+information questions, 16 ordinary), one run each, written for this evaluation and including a few Marathi, Tamil and Bengali lines I
 cannot judge myself:
 
 | | Emergencies caught | Self-harm caught | Information questions left alone | Ordinary left alone |
@@ -156,7 +156,7 @@ venv\Scripts\activate
 pip install -r requirements.txt
 $env:PYTHONPATH = "$PWD"
 python scripts/setup.py          # downloads LaBSE (~2.2 GB) and lid.176.bin (~125 MB), one time
-ollama serve                     # optional, needed only for LLM answers
+ollama serve                     # optional: local model, only needed without a Bedrock key
 ollama pull qwen3:1.7b           # ~1.3 GB, one time
 python -m uvicorn app.main:app --port 8000
 ```
@@ -184,7 +184,7 @@ Response: `{reply, intent, language, latency_ms, llm_backend, factcheck}`.
 
 ```powershell
 python scripts/eval.py      # benchmark report
-python -m pytest tests -q   # 130 test functions (more cases with parametrisation)
+python -m pytest tests -q   # 396 test cases (131 test functions, parametrised)
 ```
 
 | Suite | Result |
@@ -195,7 +195,7 @@ python -m pytest tests -q   # 130 test functions (more cases with parametrisatio
 
 These sets were written during the project: 14 of the 30 intent queries also appear in the training data, and the
 benchmark thresholds differ from the production settings. Read them as component checks, not as an estimate of
-real-world accuracy or clinical correctness.
+real-world accuracy or clinical correctness. With a Bedrock key set, the claim check scored 33/34 (97.1%) in my last run: one open-ended claim was judged MYTH by the model.
 
 ## WhatsApp channel
 
@@ -227,8 +227,8 @@ A Twilio adapter is included, but SMS delivery has not been verified.
   chunking, reranker or hybrid BM25 search yet.
 - The benchmarks above are team-written and partly overlap the training data, so they are component checks, not
   an estimate of real-world accuracy.
-- The hosted LLM tier needs account credits. Without them the bot runs on the smaller local model, which is slower,
-  especially for Hindi, before it falls back to templates.
+- Answers need a Bedrock key (AWS credits). Without one the bot tries Ollama Cloud, then the smaller local model, which is slower,
+  especially for Hindi, before it falls back to templates. After a failed Bedrock call it goes straight to templates.
 - Awareness only: not a doctor, never diagnoses.
 
 ## Roadmap
