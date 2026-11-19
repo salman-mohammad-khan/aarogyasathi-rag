@@ -259,4 +259,4 @@ purposes. Every answer carries a source list and a medical disclaimer.
 ## Author
 
 Salman Mohammad Khan, B.Tech CSE (Data Science), Bhagwan Parshuram Institute of Technology (GGSIPU), batch of 2027.
-[LinkedIn](https://www.linkedin.com/in/salman-mohammad-khan-b7879b284/)
+[LinkedIn](https://www.linkedin.com/in/salman-mohammad-khan/)
