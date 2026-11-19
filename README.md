@@ -23,7 +23,7 @@ myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.
 **Demo.** The full 82-second walkthrough covers cited answers, claim verification, emergency escalation and the Hindi
 claim check ([download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)).
 
-https://github.com/user-attachments/assets/d9685d68-14fe-4036-9af0-6d14e63ab1db
+https://github.com/user-attachments/assets/0479ed30-e8e6-44c6-9146-a2e765b1314c
 
 ## What it does
 
