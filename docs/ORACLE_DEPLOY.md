@@ -1,6 +1,7 @@
 # Deploying on Oracle Cloud Always Free (recommended target)
 
-Free forever: 2 vCPU / 12GB ARM VM — runs the full stack (LaBSE + local qwen3 + FastAPI + SQLite).
+Free forever: 2 vCPU / 12GB ARM VM — runs the full stack (LaBSE + FastAPI + SQLite, plus a small local qwen3 model
+as an optional fallback). The demo's answers come from Amazon Bedrock when a Bedrock key is set.
 Costs $0 after signup; the credit card is only used for identity verification.
 
 ## Step 1 — Sign up (10 min)
@@ -30,12 +31,12 @@ In the Oracle console:
 
 ## Step 4 — Get the code onto the VM
 
-Push this project to a **private GitHub repo** (also useful for your report), then on the VM:
+Use your own copy of this repo (fork it, or keep it private), then on the VM:
 
 ```bash
 ssh ubuntu@<PUBLIC_IP>
-sudo bash -c "curl -fsSL https://raw.githubusercontent.com/salman-mohammad-khan/AarogyaSathi/main/scripts/oracle_setup.sh -o /tmp/setup.sh"
-sudo REPO_URL=https://github.com/salman-mohammad-khan/AarogyaSathi.git bash /tmp/setup.sh
+sudo bash -c "curl -fsSL https://raw.githubusercontent.com/salman-mohammad-khan/aarogyasathi-rag/main/scripts/oracle_setup.sh -o /tmp/setup.sh"
+sudo REPO_URL=https://github.com/salman-mohammad-khan/aarogyasathi-rag.git bash /tmp/setup.sh
 ```
 
 Alternatively, upload the project folder with FileZilla/WinSCP to `/opt/healthbot` and
@@ -44,9 +45,9 @@ run `sudo bash scripts/oracle_setup.sh` (the script skips cloning if the folder 
 ## Step 5 — Configure and verify
 
 ```bash
-sudo nano /opt/healthbot/.env        # paste OLLAMA_API_KEY (optional cloud fallback)
+sudo nano /opt/healthbot/.env        # set AWS_BEARER_TOKEN_BEDROCK (main model); OLLAMA_API_KEY is an optional fallback
 sudo systemctl restart healthbot
-curl http://localhost:8000/api/health   # {"llm": {"backend": "local"}}
+curl http://localhost:8000/api/health   # {"llm": {"backend": "bedrock", ...}} (or "cloud" / "local" without a Bedrock key)
 ```
 
 Open `http://<PUBLIC_IP>:8000` in your browser — the bot is live on the cloud. For a public link, add a domain and
@@ -109,9 +110,10 @@ oci compute instance action --instance-id <OCID> --action START
 
 ## Why this setup
 
-- Local qwen3:1.7b answers English/Hindi for free with zero quota
-- `OLLAMA_API_KEY` in `.env` auto-falls back to Ollama Cloud (gpt-oss:20b) for
-  regional languages or if local fails — same code, no changes
+- With `AWS_BEARER_TOKEN_BEDROCK` set, Amazon Bedrock (Gemma 3 27B, `ap-south-1`) answers first; if a call fails the bot
+  answers from fixed templates
+- Without a Bedrock key it tries Ollama Cloud (gpt-oss:20b, needs `OLLAMA_API_KEY`), then local qwen3:1.7b, then
+  templates — same code, no changes (see "LLM failover" in the README)
 - systemd keeps the bot running 24/7 (WhatsApp-ready, no cold starts)
 - WhatsApp needs an HTTPS webhook URL: Step 6 provides it (Caddy + Let's Encrypt on port 443), and the webhook points
   to the same app
