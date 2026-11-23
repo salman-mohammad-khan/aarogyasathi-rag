@@ -19,7 +19,8 @@
     "warn_llm": "Note: this is general information, not from AarogyaSathi's verified corpus. Please confirm with a qualified doctor.",
     "warn_net": "Note: this answer is from an external internet source and is not verified by AarogyaSathi. Please verify with a qualified doctor.",
     "dont_know": "I'm sorry, I don't have reliable health information about that. I'm a health assistant - ask me about symptoms, diseases, prevention, vaccines, or health messages (e.g. 'fact check: ...').",
-    "emergency_snake_bite": "For a snake bite: wash with soap and water, keep the limb still, and go to the hospital - anti-venom is the only treatment."
+    "emergency_snake_bite": "For a snake bite: wash with soap and water, keep the limb still, and go to the hospital - anti-venom is the only treatment.",
+    "guard_refusal": "I can't follow instructions that change how I work, show my settings or keys, or switch off my safety rules. I can help with health information in English, Hindi or Hinglish: for example symptoms, prevention, vaccines, or checking a forwarded health message (start it with \"fact check:\"). In an emergency call 108 or 112."
   },
   "hi": {
     "greeting": "नमस्ते, मैं आरोग्यसाथी हूँ - आपका स्वास्थ्य साथी।\n\nमैं सत्यापित स्वास्थ्य जानकारी (WHO/MoHFW आधारित) आपकी भाषा में देता हूँ। मैं इनमें मदद कर सकता हूँ:\n1. बीमारी और लक्षणों की जानकारी\n2. बचाव और स्वच्छता के उपाय\n3. टीकाकरण कार्यक्रम\n4. स्वास्थ्य संदेश की सच्चाई जाँचना\n\nफॉरवर्ड किए संदेश की जाँच के लिए शुरू में लिखें: fact check: <संदेश>\n(उदाहरण: fact check: लहसुन से डेंगू ठीक होता है)\n\nआज मैं आपकी क्या मदद करूँ?",
@@ -41,7 +42,8 @@
     "warn_llm": "नोट: यह सामान्य जानकारी है, आरोग्यसाथी के सत्यापित संग्रह से नहीं। कृपया योग्य डॉक्टर से पुष्टि करें।",
     "warn_net": "नोट: यह उत्तर बाहरी इंटरनेट स्रोत से है और आरोग्यसाथी द्वारा सत्यापित नहीं है। कृपया योग्य डॉक्टर से पुष्टि करें।",
     "dont_know": "क्षमा करें, मेरे पास इसके बारे में विश्वसनीय स्वास्थ्य जानकारी नहीं है। मैं एक स्वास्थ्य सहायक हूँ - लक्षणों, बीमारियों, बचाव, टीकों या स्वास्थ्य संदेशों के बारे में पूछें (जैसे 'fact check: ...')।",
-    "emergency_snake_bite": "साँप काटने पर: साबुन-पानी से धोएँ, अंग स्थिर रखें, अस्पताल जाएँ - एंटी-वेनम ही एकमात्र इलाज है।"
+    "emergency_snake_bite": "साँप काटने पर: साबुन-पानी से धोएँ, अंग स्थिर रखें, अस्पताल जाएँ - एंटी-वेनम ही एकमात्र इलाज है।",
+    "guard_refusal": "मैं ऐसे निर्देश नहीं मान सकता जो मेरे काम करने का तरीका बदलें, मेरी सेटिंग या कुंजियाँ दिखाएँ, या मेरे सुरक्षा नियम बंद करें। मैं स्वास्थ्य जानकारी में मदद कर सकता हूँ: जैसे लक्षण, बचाव, टीके, या किसी फ़ॉरवर्ड किए गए स्वास्थ्य संदेश की जाँच (संदेश \"fact check:\" से शुरू करें)। आपातकाल में 108 या 112 पर कॉल करें।"
   },
   "bn": {
     "greeting": "নমস্কার, আমি আরোগ্যসাথী - আপনার স্বাস্থ্য সঙ্গী। আমি রোগ-লক্ষণ, প্রতিরোধ, টিকা এবং স্বাস্থ্য বার্তার সত্যতা যাচাই করি।\n\nফরওয়ার্ড করা বার্তা যাচাই করতে শুরুতে লিখুন: fact check: <বার্তা>\n(যেমন: fact check: রসুনে ডেঙ্গু সারে)",

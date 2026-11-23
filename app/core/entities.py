@@ -312,19 +312,31 @@ DISEASE_ALIASES = {
 
 VACCINE_ALIASES = {
     "bcg": ["bcg", "बीसीजी"],
-    "hepb": ["hepatitis b", "hep b", "हेपेटाइटिस बी"],
-    "opv": ["polio", "polio drops", "opv", "पोलियो", "पोलियो ड्रॉप"],
+    "hepb": ["hepatitis b", "hepatitis-b", "hep b", "हेपेटाइटिस बी"],
+    "opv": ["polio", "polio drops", "polio ki boond", "opv", "पोलियो", "पोलियो ड्रॉप"],
     "pentavalent": ["pentavalent", "5 in 1", "पेंटावेलेंट", "dpt", "डीपीटी"],
     "rotavirus": ["rotavirus", "रोटावायरस", "rotavac"],
-    "pcv": ["pcv", "pneumococcal", "न्यूमोकोकल"],
+    "pcv": ["pcv", "pneumococcal", "nimonia ka tika", "pneumonia vaccine", "न्यूमोकोकल"],
     "ipv": ["ipv", "injectable polio", "आईपीवी"],
-    "mr": ["mr vaccine", "measles vaccine", "खसरा टीका", "measles rubella", "एमआर टीका"],
-    "je": ["je vaccine", "japanese encephalitis", "जापानी इंसेफेलाइटिस"],
-    "dpt_booster": ["booster", "बूस्टर"],
+    "mr": ["mr vaccine", "mr ka tika", "measles vaccine", "khasra rubella", "rubella", "खसरा टीका", "measles rubella", "एमआर टीका", "खसरा रूबेला"],
+    "je": ["je vaccine", "japanese encephalitis", "dimagi bukhar", "जापानी इंसेफेलाइटिस", "दिमागी बुखार"],
+    "dpt_booster": ["dpt booster", "booster", "बूस्टर", "डीपीटी बूस्टर"],
     "td": ["td vaccine", "tetanus", "टिटनेस", "tt injection", "टीटी इंजेक्शन"],
-    "covid_vaccine": ["covid vaccine", "corona vaccine", "कोविड टीका", "covidshield", "covaxin", "कोवैक्सिन"],
-    "influenza_vaccine": ["flu vaccine", "influenza vaccine", "फ्लू टीका"],
+    "covid_vaccine": ["covid vaccine", "corona vaccine", "covid ka tika", "corona ka tika", "corona tika", "covid tika", "कोविड टीका", "कोरोना टीका", "covidshield", "covaxin", "कोवैक्सिन"],
+    "influenza_vaccine": ["flu vaccine", "influenza vaccine", "flu ka tika", "फ्लू टीका"],
 }
+
+# Words that show a message is about a vaccine. A vaccine name or a baby's age alone is not enough to answer with a
+# vaccine card ("first symptoms of pregnancy" must not return the tetanus card).
+VACCINE_WORD_RE = re.compile(
+    r"\b(vaccin\w*|immuni[sz]\w*|tika\w*|teeka\w*|tike|injection|injectable|booster|drops?|boond\w*|jab|shots?)\b"
+)
+VACCINE_WORDS_DEVANAGARI = ("टीका", "टीके", "टीकाकरण", "इंजेक्शन", "बूस्टर", "ड्रॉप", "बूँद", "बूंद")
+
+
+def has_vaccine_word(text):
+    lower = text.lower()
+    return bool(VACCINE_WORD_RE.search(lower)) or any(w in lower for w in VACCINE_WORDS_DEVANAGARI)
 
 
 NEGATION_WORDS = ["no", "not", "nahi", "nhi", "nahin", "कोई नहीं", "नहीं", "without", "koi nahi", "nahi hai"]
@@ -516,9 +528,11 @@ def find_disease(text):
 
 
 def find_vaccine(text):
+    """The vaccine whose longest alias appears in the text ("dpt booster" beats "dpt")."""
     text_lower = text.lower()
+    best, best_len = None, 0
     for vaccine, aliases in VACCINE_ALIASES.items():
         for alias in aliases:
-            if contains_alias(text_lower, alias):
-                return vaccine
-    return None
+            if len(alias) > best_len and contains_alias(text_lower, alias):
+                best, best_len = vaccine, len(alias)
+    return best
