@@ -2,7 +2,7 @@ import re
 
 from app import config
 from app.config import INTENT_CONFIDENCE_THRESHOLD
-from app.core import embeddings, entities, generator, guard, intent, kb, language, retriever, safety, safety_llm, websearch
+from app.core import embeddings, entities, generator, guard, intent, kb, language, relevance, retriever, safety, safety_llm, websearch
 from app.core import session as session_store
 from app.factcheck import verifier
 
@@ -895,7 +895,7 @@ def _process_message_core(text, session=None):
     for top in results:
         if top["type"] == "myth":
             continue
-        if not _retrieval_relevant(text, top):
+        if not relevance.accept(text, top, _retrieval_relevant(text, top)):
             continue
         if top["type"] == "disease":
             answer, gen = _disease_answer(top["id"], lang, text)
