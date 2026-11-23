@@ -113,3 +113,14 @@ WHATSAPP_APP_SECRET = os.environ.get("WHATSAPP_APP_SECRET", "")
 
 # Secret for the admin dashboard data and the surveillance write routes. Unset means those routes are disabled.
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
+
+# Browsers may call the API only from these origins (the page is served from the same origin, so this is a safety net).
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.environ.get(
+        "CORS_ORIGINS", "https://aarogyasathi.nova-care.xyz,http://localhost:8000,http://127.0.0.1:8000"
+    ).split(",")
+    if o.strip()
+]
+# Messages one client address may send to /api/chat per minute (0 switches the limit off).
+RATE_LIMIT_PER_MIN = int(os.environ.get("RATE_LIMIT_PER_MIN", "30"))

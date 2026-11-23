@@ -1,13 +1,16 @@
+import logging
+import re
 import time
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from app import config
 from app.admin_auth import require_admin
+from app.ratelimit import rate_limit_chat
 from app.core import embeddings, generator, intent, kb, language, retriever
 from app.core import session as session_store
 from app.core.router import process_message
@@ -19,9 +22,9 @@ app = FastAPI(title="AarogyaSathi - AI-Driven Public Health Chatbot", version="0
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=config.CORS_ORIGINS,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization", "X-Admin-Token"],
 )
 
 app.mount("/static", StaticFiles(directory=str(config.WEB_DIR)), name="static")
@@ -31,9 +34,19 @@ app.add_api_route("/webhook/twilio", twilio_webhook_inbound, methods=["POST", "G
 
 
 class ChatRequest(BaseModel):
-    message: str
+    message: str = Field(max_length=2000)
     pincode: str | None = None
-    session_id: str | None = None
+    session_id: str | None = Field(default=None, max_length=100)
+
+    @field_validator("pincode")
+    @classmethod
+    def _pincode_is_six_digits(cls, value):
+        # An Indian pincode is six digits. Anything else is dropped (the chat still works) so no free text can reach
+        # the surveillance tables or the admin page.
+        if value is None:
+            return None
+        value = value.strip()
+        return value if re.fullmatch(r"\d{6}", value) else None
 
 
 class ChatResponse(BaseModel):
@@ -129,7 +142,7 @@ def health():
     }
 
 
-@app.post("/api/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse, dependencies=[Depends(rate_limit_chat)])
 def chat(req: ChatRequest):
     start = time.time()
     session = session_store.get_session(req.session_id)
@@ -214,4 +227,6 @@ def admin_page():
 
 @app.exception_handler(Exception)
 def unhandled(request, exc):
-    return JSONResponse(status_code=500, content={"error": str(exc)})
+    # The details go to the server log, never to the caller (they can contain paths, settings or secrets).
+    logging.getLogger("aarogyasathi").exception("Unhandled error", exc_info=exc)
+    return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})

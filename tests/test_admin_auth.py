@@ -12,6 +12,7 @@ PROTECTED = [
     ("/api/surveillance/run", "POST"),
     ("/api/surveillance/seed", "POST"),
     ("/api/surveillance/clear", "POST"),
+    ("/webhook/whatsapp/simulate", "POST"),
 ]
 PUBLIC = [("/api/chat", "POST"), ("/api/health", "GET"), ("/", "GET"), ("/admin", "GET")]
 
