@@ -774,7 +774,7 @@ def _process_message_core(text, session=None):
     # A plain health claim without the "fact check:" prefix ("lehsun khane se dengue theek ho jata hai") is checked
     # against the curated myths. Only a curated verdict answers it; anything else continues through the normal routes.
     if verifier.looks_like_claim(text):
-        claim_result = verifier.verify_claim(text, lang, strict_remedy=True, allow_live=False)
+        claim_result = verifier.verify_claim(text, lang, strict_remedy=True, allow_live=False, plain=True)
         if claim_result.get("verdict") not in ("UNVERIFIABLE", "INVALID", None):
             session.clear()
             return {

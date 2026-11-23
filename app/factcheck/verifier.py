@@ -149,9 +149,24 @@ def _stem_token(w):
     return w
 
 
+# Romanised Hindi has no fixed spelling. Common variants are folded together so that "lehsun" and "lahsun", or "theek"
+# and "thik", count as the same word when claims are compared.
+_HINGLISH_NORM = {
+    "lehsun": "lahsun", "lasun": "lahsun", "lahasun": "lahsun",
+    "theek": "thik", "thek": "thik", "tik": "thik",
+    "tike": "teeka", "tika": "teeka", "teeka": "teeka",
+    "bachche": "bachcha", "bacche": "bachcha", "bache": "bachcha", "baccha": "bachcha", "bacha": "bachcha",
+    "machhar": "machchar", "machar": "machchar", "macchar": "machchar",
+    "paani": "pani", "khaane": "khana", "khane": "khana", "kaatta": "katta", "kaatne": "katne",
+    "jaata": "jata", "jaati": "jati", "hoti": "hota", "hote": "hota",
+    "dawai": "dawa", "dawaai": "dawa", "peeliya": "peliya",
+}
+
+
 def _content_overlap(claim, ref):
     def tokens(s):
         raw = re.findall(r"[a-z0-9\u0900-\u097F]+", s.lower())
+        raw = [_HINGLISH_NORM.get(w, w) for w in raw]
         return {_stem_token(w) for w in raw if w not in _STOPWORDS}
     a = tokens(claim)
     b = tokens(ref)
@@ -544,29 +559,30 @@ def _entry_remedy_keys(entry, row_text=""):
     return _remedy_keys(claim.get("en", "")) | _remedy_keys(claim.get("hi", "")) | _remedy_keys(row_text)
 
 
-_CLAIM_CUES = re.compile(
-    r"\b(cure[sd]?|kills?|prevents?|causes?|heals?|treats?|spreads?|stops?|boosts?|makes?|leads? to|results? in|safe|dangerous|harmful|permanently|completely|"
-    r"always|never|only|good for|bad for|theek|thik|khatam|jad se|nahi hota|nahi hoti|hota hai|hoti hai|ho jata|ho jati|ho jaata|"
-    r"se bachta|se bachata|phailta|phailti|badhata|badhti|kam karta|band kar|mar jata)\b"
-)
-_CLAIM_CUES_DEVANAGARI = ("ठीक", "खत्म", "होता है", "होती है", "हो जाता", "हो जाती", "फैलता", "फैलती", "नहीं होता", "बढ़ाता", "जड़ से", "मर जाता")
-_NOT_CLAIM_START = re.compile(
-    r"^\s*(what|how|why|when|where|which|who|whom|kaise|kab|kaun|kitna|kitne|kitni|kyun|kyu|kyon|क्या\s+क्या|कैसे|कब|कौन|कितना|कितने|क्यों)\b",
+_QUESTION_WORDS = re.compile(
+    r"\b(what|how long|how many|how much|how do|how can|how to|why|when|where|which|who|whom|kaise|kab|kaun|kitna|kitne|kitni|kyun|kyu|kyon)\b|"
+    r"(क्या\s+क्या|कैसे|कब|कौन|कितना|कितने|कितनी|क्यों)",
     re.IGNORECASE,
 )
+_INFO_WORDS = re.compile(
+    r"\b(lakshan|ilaaj|ilaj|upay|bachav|tarika|symptoms?|treatment|prevention|signs? of|causes of|dose|doses|test|jaanch)\b|"
+    r"(लक्षण|इलाज|उपाय|बचाव|तरीका|जाँच)",
+    re.IGNORECASE,
+)
+_FIRST_PERSON_START = re.compile(r"^\s*(i |i'm |i am |my |mera |meri |mere |mujhe |main |मेरा |मेरी |मेरे |मुझे |मैं )", re.IGNORECASE)
 
 
 def looks_like_claim(text):
-    """A statement, or a yes/no question, that asserts something about health (garlic cures dengue,
-    kya lehsun se dengue theek hota hai). Open questions such as what are the symptoms of dengue are not claims."""
+    """A statement, or a yes/no question, that could be a health claim (garlic cures dengue, kya lehsun se dengue
+    theek hota hai). Open questions (what, how many, kitne din) and first-person reports are not claims. Whether it
+    really is a known claim is decided by the curated myth match, which must be found before anything is answered."""
     t = (text or "").strip()
     words = t.split()
     if len(words) < 4 or len(words) > 45:
         return False
-    if _NOT_CLAIM_START.match(t):
+    if _FIRST_PERSON_START.match(t) or _QUESTION_WORDS.search(t) or _INFO_WORDS.search(t):
         return False
-    low = t.lower()
-    return bool(_CLAIM_CUES.search(low)) or any(c in t for c in _CLAIM_CUES_DEVANAGARI)
+    return True
 
 
 def _load_hinglish():
@@ -609,7 +625,7 @@ def _confidence_from(sim, tier):
     return round(min(99.0, base + boost), 1)
 
 
-def verify_claim(text, lang="en", strict_remedy=False, allow_live=True):
+def verify_claim(text, lang="en", strict_remedy=False, allow_live=True, plain=False):
     index = _ensure_index()
     claim = clean_claim(text)
     if len(claim.split()) < 3:
@@ -673,13 +689,16 @@ def verify_claim(text, lang="en", strict_remedy=False, allow_live=True):
     ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", "")) | _disease_keys(row_text)
     disease_conflict = bool(ck) and bool(ek) and not (ck & ek)
     er_best = _entry_remedy_keys(entry, row_text)
-    remedy_conflict = strict_remedy and bool(er_best) and not (rk & er_best)
+    remedy_conflict = bool(er_best) and not (rk & er_best) and (strict_remedy or best_sim < 0.90)
 
     use_curated = (
         (best_sim >= 0.70 and overlap >= 0.35 and not disease_conflict)
         or (best_sim >= 0.80 and overlap >= 0.25 and not disease_conflict)
         or (best_sim >= FACTCHECK_SIM_THRESHOLD and overlap >= 0.40 and not disease_conflict)
     ) and not remedy_conflict
+    if plain:
+        # A plain message was not marked as a claim by the user, so only a close match may answer it.
+        use_curated = use_curated and best_sim >= 0.75 and overlap >= 0.40
 
     if not use_curated:
         if not allow_live:
