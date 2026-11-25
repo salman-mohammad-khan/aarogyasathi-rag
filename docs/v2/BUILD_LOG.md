@@ -310,3 +310,129 @@ Qdrant local mode: https://qdrant.tech/documentation/quickstart/ (Python client,
    feeding advice was lower). S3 will show whether 5 chunks are enough or whether the answer step needs more.
 4. Possible later word-list additions found by the hard set ("dedh mahina = 6 weeks") were NOT added, so the hard
    set stays a fair test.
+
+---
+
+## Server change history (Oracle VM, outside the repo)
+
+Every change made on the server for v2, so it can be undone. Nothing here touches the frozen group copy (port 8000).
+
+| Date (UTC) | Change | Why | Effect | Undo |
+|---|---|---|---|---|
+| 2026-11-25 18:36 | Unloaded `qwen3.5:2b` from Ollama memory (`ollama stop qwen3.5:2b`); model files kept on disk | NovaCare's local triage model, but NovaCare uses Bedrock (key set, no local fallback); Ollama had no chat calls since 17 Nov | Available RAM 2.0 GB -> 5.5 GB. Checked after: both AarogyaSathi copies `/api/health` 200, NovaCare home 200 and its AI assistant answered via Bedrock, model not reloaded | `ollama run qwen3.5:2b ""` (or any call to it) loads it again |
+
+Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
+Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
+would load `qwen3.5:2b` again.
+
+**Planned, not done: LaBSE out of the portfolio copy at the S4 deploy.** Each app copy is its own process with its
+own LaBSE in memory (group ~0.83 GB, portfolio ~0.80 GB), so the group copy is not affected. The live portfolio
+code (v1) still uses LaBSE for search and fact-check today, so it is removed only when v2 (e5) replaces those parts.
+
+---
+
+## Decisions for later steps
+
+**Medicine doses (decided 2026-11-26, for S3): the middle rule.**
+
+| Allowed in answers | Never in answers |
+|---|---|
+| Which kind of medicine is generally used, and which to avoid (paracetamol for dengue fever; no aspirin or ibuprofen) | Any amount: mg, ml, mg/kg, "2 tablets twice a day" |
+| "Complete the course", "do not stop early" (TB, malaria) | Doses for children or in pregnancy; antibiotics, antimalarials, antivenom, insulin, BP and sugar medicines |
+| How to prepare ORS; ORS plus zinc and continued feeding; vaccine schedule by age | Starting, changing or stopping someone's medicine |
+| "Take iron-folic acid as your ANM/ASHA gives it" | Choosing a medicine for this person (diagnosis) |
+
+When a dose is asked: say what is safe to say, then that the amount depends on age and weight and must come from
+the ASHA, PHC doctor or pharmacist (108 for emergencies). Reasons: the bot cannot check weight, age, pregnancy or
+other medicines; errors in rewriting or reading chunks could produce a wrong number; India's Telemedicine Practice
+Guidelines (2020) do not allow AI tools to counsel patients or prescribe directly. Implementation in S3: dose chunks
+are already flagged (`contains_dose`); the answer prompt states the rule; a final check blocks any reply containing a
+dose pattern before it is sent.
+
+---
+
+## S3: answers with citations (2026-11-26)
+
+**Goal.** Turn the 5 chunks from search into a short, cited answer in the user's language, following the medicine
+dose rule, and say "not in my sources" instead of guessing.
+
+```
+question -> search (S2) -> ANSWER_PROMPT (rules + numbered sources + reply language) -> chat model on Bedrock
+         -> checks: NOT_IN_SOURCES, citation format, invalid markers, dose lines, language, leaked prompt
+         -> Answer(text, status, sources[title, page, url])
+```
+
+### Files
+
+| File | Job |
+|---|---|
+| `app/answer/prompt.py` | `SYSTEM_PROMPT` (6 rules: only the sources, cite [n], `NOT_IN_SOURCES`, middle dose rule, no diagnosis or medicine choice, 80-120 words in simple words); `HUMAN_PROMPT` with the reply-language line (the fix from v1 PR #22); `format_sources()` numbers the chunks with title and page |
+| `app/answer/chain.py` | `build_chain()`: the LangChain LCEL chain (`RunnablePassthrough.assign` adds search result, sources text and reply to one dict); `finish()`: all checks and the fixed replies; `Answerer.answer()`; `make_llm()` (`ChatBedrockConverse`, temperature 0, gpt-oss with low reasoning effort); fixed replies in en/hi/hinglish: `NOT_COVERED`, `DOSE_NOTE`, `TRY_AGAIN` |
+| `app/answer/citations.py` | `normalise_markers()` (【1†L1-L5】 and [1, 2] become [1] [2]), `cited_numbers()`, `remove_invalid_markers()`, `source_list()` |
+| `app/answer/checks.py` | `gives_dose()` / `remove_dose_lines()`: unit patterns (English and Hindi: mg, ml, मिग्रा, मि.ली.), counts ("ek goli", "पूरी गोली"), frequencies ("twice a day", "har 6 ghante", "din me ... 4 baar", "6 ghante ka gap") and a line rule (medicine form + number or frequency word on one line), with vaccine schedules by age allowed; `wrong_language()`; `leaks_prompt()` |
+| `app/retrieval/rewrite.py` | `question_language()`: en / hi / hinglish, used for the reply language |
+| `eval/golden_answers.yaml` | 40 questions: 23 covered, 8 dose, 5 not covered, 4 tricks (instruction override, prompt print, stop BP medicine, which antibiotic) |
+| `eval/answer_eval.py` | Same 5 chunks for every model; rule scores; two judges (DeepSeek V3.2, Mistral Large 3, not answer candidates) mark each claim supported or not, whether it answers the question, gives personal medicine advice, or states a medicine amount; tokens and cost |
+| `eval/results/s3_answers.md/.json`, `s3_review.md`, `s3_blind_review.md` (+ `_key.json`) | Results, every answer and verdict, Hindi/Hinglish answers, blind A/B review for a human |
+| `tests/test_answer.py` | 41 tests with a fake chat model: citations, dose lines (every leak found in the test is a regression case), language, leaks, the whole chain, reasoning blocks, Bedrock failure |
+
+`langchain-aws==1.10.0` (https://pypi.org/project/langchain-aws/, `ChatBedrockConverse`) added to
+`requirements-ingest.txt`; numpy unchanged. Judges found by a live call on 2026-11-26: DeepSeek V3.2, Mistral Large 3,
+Kimi K2.5, Nova Pro, Nova 2 Lite and Qwen3-235B work; OpenAI GPT-5.x/6.x are blocked like Claude (Marketplace).
+
+### What happened
+
+1. **gpt-oss citation style.** First run: gpt-oss answered only 36% of covered questions because it writes
+   【1†L1-L5】 instead of [1]; `normalise_markers()` fixed the parsing. It still leaves citations out entirely in
+   some Hindi/Hinglish answers (78% after the fix).
+2. **Test label correction.** "बाल झड़ना कैसे रोकें?" was labelled not covered, but ASHA Module Part C has a
+   hair-care section that two models cited; relabelled "answer" after the first run.
+3. **Off-topic but cited.** Gemma once answered the pimples question with COVID mask advice (cited, irrelevant), so
+   the score now also needs both judges to say the answer actually answers the question. It declined the same
+   question on the next run (temperature 0, still not fully repeatable).
+4. **Models ignore the dose rule.** In every run, all three models stated amounts in 6-11 replies (mostly the 8
+   dose questions) despite rule 4 of the prompt. The code check is what keeps amounts away from users.
+5. **The dose checker had gaps, found by the judges.** One shown answer had "पूरी गोली (20 मिग्रा)"; others had
+   "one IFA tablet daily", "रोज एक बार", "6 ghante ka gap", "din me zyada se zyada 4 baar". Each was added to
+   the checker and to the tests; the judges now also report "states a medicine amount" independently of our
+   checker. False alarms fixed on the way: citation numbers counted as numbers, English "Do" read as Hinglish "two",
+   Hinglish "tab" (then) read as tablet, vaccine schedules ("पहली खुराक 9 महीने") read as doses.
+
+### Result (final run, 40 questions, same chunks for each model)
+
+| | Gemma 3 27B | gpt-oss-120b | Qwen3-235B |
+|---|---|---|---|
+| Expected outcome, all | 100% | 88% | 100% |
+| Covered questions answered with citations (and judged on-topic) | 100% | 78% | 100% |
+| Dose questions with no amount shown | 100% | 100% | 100% |
+| Not-covered questions declined | 100% | 100% | 100% |
+| Tricks handled | 100% | 100% | 100% |
+| Model's own reply stated a dose (caught by the check) | 9 | 11 | 11 |
+| Faithfulness (claims supported), DeepSeek / Mistral judge | 97% / 96% | 96% / 98% | 98% / 99% |
+| Shown answers a judge thinks state an amount | 4 | 5 | 3 |
+| Median seconds per answer (search + rewrite + answer) | 3.2 | 0.9 | 2.0 |
+| USD per 1,000 answers (AWS Mumbai on-demand prices from the AWS Price List API, 2026-11-26) | $0.53 | $0.45 | $0.67 |
+
+The judge "amount" flags in the final run were read one by one: all are single-judge flags on fever thresholds
+(38 °C), vaccine storage ("within 8 hours"), the rabies vaccine day schedule, "paracetamol only for 3 days" or
+"the first dose under observation"; no mg, ml, tablet count or times-per-day reached a user.
+
+### Decisions and open points
+
+1. **Answer model: Qwen3-235B, with Gemma 3 27B as automatic fallback** (decided 2026-11-26; he left the choice to
+   me as the scores were so close). gpt-oss is out (drops citations in Hindi/Hinglish). Gemma and Qwen tie on every
+   safety and accuracy measure; reading the Hindi/Hinglish answers side by side, Qwen used everyday Hinglish words
+   ("mirch, haldi, tel, mitti", where Gemma wrote "Chilli, turmeric, oil, mud"), kept to the 80-120 word rule
+   (about 100-126 words; Gemma often 140-190 with filler), and was faster (2.0 s vs 3.2 s). It costs a little more
+   ($0.67 vs $0.53 per 1,000 answers at Mumbai prices: Qwen $0.26 / $1.04, Gemma $0.27 / $0.45 per million input /
+   output tokens; an earlier note called it cheaper, from estimated prices). Its weak
+   spot: some formal Hindi words ("निम्न उपाय", "अवशोषण"). Fallback uses LangChain's `with_fallbacks`: if the Qwen
+   call fails, the same prompt runs on Gemma. The English rewrite stays on Gemma (measured in S2). In a toy check
+   with a one-sentence source, Qwen added one tip that was not in it; keep watching faithfulness in S4/S6.
+   The blind A/B review file stays in `eval/results/` for a later human check.
+2. Judges agree on "fully supported" 85-92% of the time; a hand check of a sample is still to do.
+3. The dose checker is regular expressions; it is now strict (it also removes durations like "zinc for 14 days
+   daily"). A dose question with every line removed shows only the dose note.
+4. 40 questions is a small set; some outcomes changed between runs at temperature 0 (the pimples answer).
+5. Answers to the 8 dose questions sometimes keep clinical lines meant for health workers (ASV infusion, intradermal
+   technique). S4's prompt or a short "public answer" check could trim these.
