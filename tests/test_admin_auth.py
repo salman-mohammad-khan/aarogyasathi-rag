@@ -12,13 +12,25 @@ PROTECTED = [
     ("/api/surveillance/run", "POST"),
     ("/api/surveillance/seed", "POST"),
     ("/api/surveillance/clear", "POST"),
+    ("/webhook/whatsapp/simulate", "POST"),
 ]
 PUBLIC = [("/api/chat", "POST"), ("/api/health", "GET"), ("/", "GET"), ("/admin", "GET")]
 
 
+def _walk(routes, prefix=""):
+    # Newer FastAPI versions can keep included routers nested instead of flattening them.
+    for route in routes:
+        original = getattr(route, "original_router", None)
+        if original is not None:
+            context = getattr(route, "include_context", None)
+            yield from _walk(original.routes, prefix + (getattr(context, "prefix", "") or ""))
+        elif hasattr(route, "dependant"):
+            yield prefix + route.path, route
+
+
 def _route(path, method):
-    for route in app.routes:
-        if getattr(route, "path", None) == path and method in getattr(route, "methods", set()):
+    for full, route in _walk(app.routes):
+        if full == path and method in getattr(route, "methods", set()):
             return route
     raise AssertionError(f"route {method} {path} not found")
 

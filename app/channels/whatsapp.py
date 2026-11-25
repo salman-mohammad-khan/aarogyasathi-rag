@@ -4,11 +4,12 @@ import hmac
 import json
 import threading
 from collections import OrderedDict
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query, Request, Depends
 from fastapi.responses import JSONResponse, PlainTextResponse
 import httpx
 
 from app import config
+from app.admin_auth import require_admin
 from app.core import router
 from app.core import session as session_store
 
@@ -203,7 +204,7 @@ async def meta_webhook_message(request: Request, background_tasks: BackgroundTas
     return {"status": "ok"}
 
 
-@whatsapp_router.post("/simulate")
+@whatsapp_router.post("/simulate", dependencies=[Depends(require_admin)])
 def simulate_whatsapp_chat(req: dict):
     """
     Sandbox / Viva Demo Endpoint:

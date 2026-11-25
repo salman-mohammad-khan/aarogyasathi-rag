@@ -2,7 +2,7 @@ import re
 
 from app import config
 from app.config import INTENT_CONFIDENCE_THRESHOLD
-from app.core import embeddings, entities, generator, intent, kb, language, retriever, safety, safety_llm, websearch
+from app.core import embeddings, entities, generator, guard, intent, kb, language, relevance, retriever, safety, safety_llm, websearch
 from app.core import session as session_store
 from app.factcheck import verifier
 
@@ -38,55 +38,80 @@ def _build_disease_symptom_map():
 # A number plus a time unit is only treated as a vaccination age when the message is about vaccines, a baby or a
 # child, and the number is not a duration ("cough for 2 years").
 AGE_CONTEXT = re.compile(
-    r"\b(vaccin\w*|immuni[sz]\w*|tika\w*|teeka\w*|baby|babies|child\w*|kid|kids|infant|newborn|toddler|"
-    r"bachch\w*|bachh\w*|shishu|son|daughter|beta|beti|bete|old)\b"
+    r"\b(vaccin\w*|immuni[sz]\w*|tika\w*|teeka\w*|tike|baby|babies|child\w*|kid|kids|infant|newborn|toddler|"
+    r"bachch\w*|bachh\w*|bacch\w*|bacha|bache|bachon|shishu|son|daughter|beta|beti|bete|old)\b"
 )
 AGE_CONTEXT_DEVANAGARI = ("टीका", "टीके", "टीकाकरण", "बच्च", "शिशु")
 DURATION_CUE = re.compile(r"(?:\bfor|\bsince|\blast|\bpast|\bpichle|\bpichhle|से)\s*$")
 
 
-def _age_to_milestones(text):
+def _age_in_weeks(text):
+    """The child's age in weeks when the message states one for a vaccination question, else None."""
     lower = text.lower()
-    if any(w in lower for w in PREGNANCY_WORDS):
-        return "pregnancy"
     if not (AGE_CONTEXT.search(lower) or any(w in lower for w in AGE_CONTEXT_DEVANAGARI)):
         return None
-    match = None
     for candidate in AGE_PATTERN.finditer(lower):
         if DURATION_CUE.search(lower[max(0, candidate.start() - 12):candidate.start()]):
             continue
-        match = candidate
-        break
-    if not match:
-        return None
-    n = int(match.group(1))
-    unit = match.group(2)
-    if unit in ("week", "weeks", "hafte", "hafta", "सप्ताह", "हफ्ते", "हफ़्ते"):
-        weeks = n
-        if weeks <= 1:
-            return "birth"
-        if 4 <= weeks <= 8:
-            return "6_weeks"
-        if 9 <= weeks <= 12:
-            return "10_weeks"
-        if 13 <= weeks <= 16:
-            return "14_weeks"
-        return None
-    if unit in ("month", "months", "mahine", "mahina", "महीने", "महीना"):
-        if n < 12:
-            return "9_12_months"
-        if 12 <= n <= 24:
-            return "16_24_months"
-        return None
-    if unit in ("year", "years", "saal", "sal", "साल", "वर्ष"):
-        if n < 7:
-            return "5_6_years"
-        if 7 <= n <= 12:
-            return "10_years"
-        if 13 <= n <= 18:
-            return "16_years"
-        return None
+        n = int(candidate.group(1))
+        unit = candidate.group(2)
+        if unit in ("week", "weeks", "hafte", "hafta", "सप्ताह", "हफ्ते", "हफ़्ते"):
+            return float(n)
+        if unit in ("month", "months", "mahine", "mahina", "महीने", "महीना"):
+            return n * 4.345
+        if unit in ("year", "years", "saal", "sal", "साल", "वर्ष"):
+            return n * 52.18
     return None
+
+
+# UIP windows in weeks. Between two windows no routine vaccine is due (a gap).
+_AGE_WINDOWS = [
+    (0, 4.5, "birth"),
+    (4.5, 9, "6_weeks"),
+    (9, 13, "10_weeks"),
+    (13, 17, "14_weeks"),
+    (17, 39, None),
+    (39, 65, "9_12_months"),
+    (65, 111, "16_24_months"),
+    (111, 260, None),
+    (260, 365, "5_6_years"),
+    (365, 520, None),
+    (520, 690, "10_years"),
+    (690, 830, None),
+    (830, 945, "16_years"),
+]
+
+
+def _age_window(text):
+    """(milestone or None, is_gap) for the age in the message; (None, False) when there is no usable age."""
+    weeks = _age_in_weeks(text)
+    if weeks is None:
+        return None, False
+    for lo, hi, name in _AGE_WINDOWS:
+        if lo <= weeks < hi:
+            return name, name is None
+    return None, False
+
+
+def _age_to_milestones(text):
+    lower = text.lower()
+    if any(w in lower for w in PREGNANCY_WORDS):
+        # Pregnancy is a vaccine topic only when the message is about a vaccine or tetanus.
+        if entities.has_vaccine_word(lower) or "tetanus" in lower or "टिटनेस" in lower or re.search(r"(tt|td)", lower):
+            return "pregnancy"
+        return None
+    milestone, _ = _age_window(text)
+    return milestone
+
+
+def _age_gap(text):
+    return _age_window(text)[1]
+
+
+AGE_GAP_NOTE = {
+    "en": "The routine UIP schedule has no vaccine due at this age (between 14 weeks and 9 months, between about 2 and 5 years, and at some other ages). If a dose was missed, ask your ANM, ASHA or nearest health centre what can still be given.",
+    "hi": "इस उम्र पर नियमित टीकाकरण कार्यक्रम (UIP) में कोई टीका तय नहीं है (14 सप्ताह से 9 महीने के बीच, लगभग 2 से 5 साल के बीच, और कुछ दूसरी उम्र पर)। अगर कोई खुराक छूट गई है तो अपनी ANM, आशा या नज़दीकी स्वास्थ्य केंद्र से पूछें कि कौन सा टीका अब भी लग सकता है।",
+}
 
 
 AGE_VACCINE_MAP = {
@@ -355,6 +380,12 @@ def _vaccine_response(text, lang):
         return "\n".join(context_lines), "\n".join(lines), "UIP, MoHFW"
     summary = kb.vaccine_summary()
     lines = [f"National Immunization Schedule (UIP):\n{summary.get(lang, summary['en'])}"]
+    if _age_gap(text):
+        # An age was given but no routine vaccine is due at it. Say so, then show the schedule.
+        gap = AGE_GAP_NOTE.get(lang, AGE_GAP_NOTE["en"])
+        lines.insert(0, gap)
+        lines.append(safety.disclaimer(lang))
+        return gap + " " + summary.get(lang, summary["en"]), "\n".join(lines), "UIP, MoHFW"
     lines.append("Ask me about any specific vaccine, e.g. 'MR vaccine' or 'vaccines at 6 weeks'.")
     lines.append(safety.disclaimer(lang))
     return summary.get(lang, summary["en"]), "\n".join(lines), "UIP, MoHFW"
@@ -508,6 +539,13 @@ def _try_fast_path(text, lang, session):
     if intent_name == "outbreak":
         return {"text": _outbreak_response(lang), "meta": {"intent": "outbreak", "lang": lang, "route": "fast_path"}}
 
+    # 3c. A question that is clearly about a vaccine comes before the disease card: "hepatitis b ka tika" and
+    # "corona ka tika kitne dose" are vaccine questions, not hepatitis or COVID information.
+    if entities.has_vaccine_word(text) and (vaccine_id or milestone or _age_gap(text)):
+        context, fallback, sources = _vaccine_response(text, lang)
+        answer, gen = _llm_wrap(context, text, lang, fallback, sources)
+        return {"text": answer, "meta": {"intent": "vaccination", "lang": lang, "generator": gen, "route": "fast_path"}}
+
     # 4. Disease info & prevention
     if disease_id or intent_name in ("disease_info", "prevention"):
         d_id = disease_id or entities.find_disease(text)
@@ -539,7 +577,7 @@ def _try_fast_path(text, lang, session):
             }
 
     # 6. Vaccination
-    if vaccine_id or milestone or intent_name == "vaccination":
+    if (vaccine_id and not disease_id) or (milestone and entities.has_vaccine_word(text)) or intent_name == "vaccination":
         context, fallback, sources = _vaccine_response(text, lang)
         answer, gen = _llm_wrap(context, text, lang, fallback, sources)
         return {"text": answer, "meta": {"intent": "vaccination", "lang": lang, "generator": gen, "route": "fast_path"}}
@@ -683,6 +721,14 @@ def _process_message_core(text, session=None):
             "meta": {"intent": "emergency", "red_flags": red_flags, "lang": lang},
         }
 
+    # Instruction-override wordings get a fixed reply; no model sees them (see app/core/guard.py).
+    if guard.is_injection(text):
+        session.clear()
+        return {
+            "text": kb.msg(lang, "guard_refusal"),
+            "meta": {"intent": "guard", "lang": lang, "route": "rule"},
+        }
+
     if any(t in lower for t in FACT_TRIGGERS):
         session.clear()
         result = verifier.verify_claim(text, lang)
@@ -723,6 +769,17 @@ def _process_message_core(text, session=None):
                     "lang": lang,
                     "generator": gen,
                 },
+            }
+
+    # A plain health claim without the "fact check:" prefix ("lehsun khane se dengue theek ho jata hai") is checked
+    # against the curated myths. Only a curated verdict answers it; anything else continues through the normal routes.
+    if verifier.looks_like_claim(text):
+        claim_result = verifier.verify_claim(text, lang, strict_remedy=True, allow_live=False, plain=True)
+        if claim_result.get("verdict") not in ("UNVERIFIABLE", "INVALID", None):
+            session.clear()
+            return {
+                "text": verifier.format_verdict(claim_result, lang),
+                "meta": {"intent": "fact_check", "verdict": claim_result["verdict"], "lang": lang, "factcheck": claim_result, "route": "claim_detect"},
             }
 
     # --- FAST PATH (Sub-5ms TF-IDF & Entity Routing) ---
@@ -838,7 +895,7 @@ def _process_message_core(text, session=None):
     for top in results:
         if top["type"] == "myth":
             continue
-        if not _retrieval_relevant(text, top):
+        if not relevance.accept(text, top, _retrieval_relevant(text, top)):
             continue
         if top["type"] == "disease":
             answer, gen = _disease_answer(top["id"], lang, text)

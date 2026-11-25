@@ -159,7 +159,9 @@ def test_real_ages_still_map_to_milestones():
     assert router._age_to_milestones("my baby is 6 weeks old") == "6_weeks"
     assert router._age_to_milestones("which vaccine at 14 weeks") == "14_weeks"
     assert router._age_to_milestones("meri beti 10 saal ki hai kaun sa tika") == "10_years"
-    assert router._age_to_milestones("I am pregnant") == "pregnancy"
+    # Pregnancy is a vaccine topic only when the message is about a vaccine or tetanus (see test_vaccine_routing.py).
+    assert router._age_to_milestones("I am pregnant, which vaccine do I need") == "pregnancy"
+    assert router._age_to_milestones("I am pregnant") is None
 
 
 # --- natural phrasings, Hinglish and language misdetection of emergencies --------------------------------

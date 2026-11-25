@@ -35,6 +35,15 @@ function showBlocked(message) {
   document.querySelector("header p").textContent = message + " Reload the page to try again.";
 }
 
+// Cells are filled with textContent, never innerHTML, so a pincode or any other stored text cannot run as HTML.
+function addCell(tr, value, className) {
+  const td = document.createElement("td");
+  td.textContent = value === undefined || value === null ? "" : String(value);
+  if (className) td.className = className;
+  tr.appendChild(td);
+  return td;
+}
+
 function fillTable(tbodyId, rows, keyName, valName, transform) {
   const tbody = document.querySelector(tbodyId);
   tbody.innerHTML = "";
@@ -46,7 +55,8 @@ function fillTable(tbodyId, rows, keyName, valName, transform) {
     .sort((a, b) => b[1] - a[1])
     .forEach(([k, v]) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${transform ? transform(k) : k}</td><td>${v}</td>`;
+      addCell(tr, transform ? transform(k) : k);
+      addCell(tr, v);
       tbody.appendChild(tr);
     });
 }
@@ -72,8 +82,12 @@ async function refresh() {
     alerts.spike_alerts.forEach((a) => {
       const tr = document.createElement("tr");
       const when = new Date(a.ts * 1000).toLocaleString();
-      tr.innerHTML = `<td>${a.pincode}</td><td>${a.symptom}</td><td>${a.current_count}</td>
-        <td>${a.baseline}</td><td class="sev-${a.severity}">${a.severity.toUpperCase()}</td><td>${when}</td>`;
+      addCell(tr, a.pincode);
+      addCell(tr, a.symptom);
+      addCell(tr, a.current_count);
+      addCell(tr, a.baseline);
+      addCell(tr, String(a.severity).toUpperCase(), "sev-" + String(a.severity).replace(/[^a-z]/gi, ""));
+      addCell(tr, when);
       tbody.appendChild(tr);
     });
   } catch (e) {

@@ -1,3 +1,4 @@
+import json
 import re
 import urllib.parse
 
@@ -7,6 +8,7 @@ import numpy as np
 from app.config import (
     FACTCHECK_SEARCH_MAX_RESULTS,
     FACTCHECK_SIM_THRESHOLD,
+    KB_DIR,
 )
 from app.core import embeddings, generator, kb, websearch
 
@@ -147,9 +149,24 @@ def _stem_token(w):
     return w
 
 
+# Romanised Hindi has no fixed spelling. Common variants are folded together so that "lehsun" and "lahsun", or "theek"
+# and "thik", count as the same word when claims are compared.
+_HINGLISH_NORM = {
+    "lehsun": "lahsun", "lasun": "lahsun", "lahasun": "lahsun",
+    "theek": "thik", "thek": "thik", "tik": "thik",
+    "tike": "teeka", "tika": "teeka", "teeka": "teeka",
+    "bachche": "bachcha", "bacche": "bachcha", "bache": "bachcha", "baccha": "bachcha", "bacha": "bachcha",
+    "machhar": "machchar", "machar": "machchar", "macchar": "machchar",
+    "paani": "pani", "khaane": "khana", "khane": "khana", "kaatta": "katta", "kaatne": "katne",
+    "jaata": "jata", "jaati": "jati", "hoti": "hota", "hote": "hota",
+    "dawai": "dawa", "dawaai": "dawa", "peeliya": "peliya",
+}
+
+
 def _content_overlap(claim, ref):
     def tokens(s):
         raw = re.findall(r"[a-z0-9\u0900-\u097F]+", s.lower())
+        raw = [_HINGLISH_NORM.get(w, w) for w in raw]
         return {_stem_token(w) for w in raw if w not in _STOPWORDS}
     a = tokens(claim)
     b = tokens(ref)
@@ -497,6 +514,87 @@ def clean_claim(text):
     return text.strip()
 
 
+REMEDY_CANON = {
+    "garlic": "garlic", "lahsun": "garlic", "lehsun": "garlic", "lasun": "garlic", "लहसुन": "garlic",
+    "haldi": "turmeric", "turmeric": "turmeric", "हल्दी": "turmeric",
+    "giloy": "giloy", "guduchi": "giloy", "गिलोय": "giloy",
+    "tulsi": "tulsi", "तुलसी": "tulsi",
+    "neem": "neem", "नीम": "neem",
+    "karela": "karela", "karele": "karela", "bitter gourd": "karela", "करेला": "karela",
+    "papaya": "papaya", "papita": "papaya", "papite": "papaya", "पपीता": "papaya", "पपीते": "papaya",
+    "ginger": "ginger", "adrak": "ginger", "अदरक": "ginger",
+    "honey": "honey", "shahad": "honey", "शहद": "honey",
+    "lemon": "lemon", "nimbu": "lemon", "नींबू": "lemon",
+    "kadha": "kadha", "काढ़ा": "kadha",
+    "chyawanprash": "chyawanprash", "च्यवनप्राश": "chyawanprash",
+    "jeera": "jeera", "cumin": "jeera", "जीरा": "jeera",
+    "saunf": "saunf", "fennel": "saunf", "सौंफ": "saunf",
+    "coconut": "coconut", "nariyal": "coconut", "नारियल": "coconut",
+    "cow urine": "cow_urine", "gaumutra": "cow_urine", "गौमूत्र": "cow_urine",
+    "toothpaste": "toothpaste", "ghee": "ghee", "jaggery": "jaggery", "gud": "jaggery", "गुड़": "jaggery",
+    "chilli": "chilli", "mirch": "chilli", "mirchi": "chilli", "मिर्च": "chilli",
+    "alcohol": "alcohol", "sharab": "alcohol", "शराब": "alcohol",
+    "spoon": "spoon", "chamach": "spoon", "चम्मच": "spoon",
+    "hot water": "hot_water", "warm water": "hot_water", "garam paani": "hot_water", "गर्म पानी": "hot_water",
+    "hanuman phal": "graviola", "graviola": "graviola", "soursop": "graviola",
+    "vitamin c": "vitamin_c", "aspirin": "aspirin",
+}
+
+
+def _remedy_keys(s):
+    """Canonical names of the home remedies or ingredients a claim mentions (garlic, lahsun and लहसुन are one)."""
+    s_lower = s.lower()
+    keys = set()
+    for alias, canonical in REMEDY_CANON.items():
+        if alias.isascii():
+            if re.search(r"\b" + re.escape(alias) + r"\b", s_lower):
+                keys.add(canonical)
+        elif alias in s_lower:
+            keys.add(canonical)
+    return keys
+
+
+def _entry_remedy_keys(entry, row_text=""):
+    claim = entry.get("claim", {})
+    return _remedy_keys(claim.get("en", "")) | _remedy_keys(claim.get("hi", "")) | _remedy_keys(row_text)
+
+
+_QUESTION_WORDS = re.compile(
+    r"\b(what|how long|how many|how much|how do|how can|how to|why|when|where|which|who|whom|kaise|kab|kaun|kitna|kitne|kitni|kyun|kyu|kyon)\b|"
+    r"(क्या\s+क्या|कैसे|कब|कौन|कितना|कितने|कितनी|क्यों)",
+    re.IGNORECASE,
+)
+_INFO_WORDS = re.compile(
+    r"\b(lakshan|ilaaj|ilaj|upay|bachav|tarika|symptoms?|treatment|prevention|signs? of|causes of|dose|doses|test|jaanch)\b|"
+    r"(लक्षण|इलाज|उपाय|बचाव|तरीका|जाँच)",
+    re.IGNORECASE,
+)
+_FIRST_PERSON_START = re.compile(r"^\s*(i |i'm |i am |my |mera |meri |mere |mujhe |main |मेरा |मेरी |मेरे |मुझे |मैं )", re.IGNORECASE)
+
+
+def looks_like_claim(text):
+    """A statement, or a yes/no question, that could be a health claim (garlic cures dengue, kya lehsun se dengue
+    theek hota hai). Open questions (what, how many, kitne din) and first-person reports are not claims. Whether it
+    really is a known claim is decided by the curated myth match, which must be found before anything is answered."""
+    t = (text or "").strip()
+    words = t.split()
+    if len(words) < 4 or len(words) > 45:
+        return False
+    if _FIRST_PERSON_START.match(t) or _QUESTION_WORDS.search(t) or _INFO_WORDS.search(t):
+        return False
+    return True
+
+
+def _load_hinglish():
+    path = KB_DIR / "myths_hinglish.json"
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return {}
+    return {k: v for k, v in data.items() if not k.startswith("_") and isinstance(v, list)}
+
+
 def _ensure_index():
     global _index
     if _index is not None:
@@ -508,6 +606,14 @@ def _ensure_index():
             if lang in m.get("claim", {}):
                 claims.append(m["claim"][lang])
                 entries.append(m)
+    by_id = {m["id"]: m for m in kb.myths()}
+    for myth_id, variants in _load_hinglish().items():
+        entry = by_id.get(myth_id)
+        if not entry:
+            continue
+        for variant in variants:
+            claims.append(variant)
+            entries.append(entry)
     matrix = embeddings.embed_with_cache("myth_claims", claims)
     _index = {"claims": claims, "entries": entries, "matrix": matrix}
     return _index
@@ -519,7 +625,7 @@ def _confidence_from(sim, tier):
     return round(min(99.0, base + boost), 1)
 
 
-def verify_claim(text, lang="en"):
+def verify_claim(text, lang="en", strict_remedy=False, allow_live=True, plain=False):
     index = _ensure_index()
     claim = clean_claim(text)
     if len(claim.split()) < 3:
@@ -533,17 +639,26 @@ def verify_claim(text, lang="en"):
     qv = embeddings.embed_texts([claim])[0]
     sims = embeddings.cosine_similarity(qv, index["matrix"])
 
-    # 2. Disease-aware re-ranking
+    # 2. Disease- and remedy-aware re-ranking
     ck = _disease_keys(claim)
+    rk = _remedy_keys(claim)
     scores = np.copy(sims)
-    if ck:
-        for i, entry in enumerate(index["entries"]):
-            ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", ""))
+    for i, entry in enumerate(index["entries"]):
+        row = index["claims"][i]
+        if ck:
+            ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", "")) | _disease_keys(row)
             if ek:
                 if ck & ek:
                     scores[i] += 0.15  # same disease boost
                 else:
                     scores[i] -= 0.30  # conflicting disease penalty
+        if rk:
+            er = _entry_remedy_keys(entry, row)
+            if er:
+                if rk & er:
+                    scores[i] += 0.12  # same remedy: garlic matches the garlic myth
+                else:
+                    scores[i] -= 0.12  # a different remedy: garlic must not match the giloy myth
 
     # Re-rank top candidates by combining semantic similarity and lexical overlap
     top_candidates = np.argsort(scores)[::-1][:8]
@@ -551,9 +666,11 @@ def verify_claim(text, lang="en"):
     best_combined = -1.0
     for idx in top_candidates:
         entry_cand = index["entries"][idx]
+        row_cand = index["claims"][idx]
         ol = max(
             _content_overlap(claim, entry_cand["claim"].get("en", "")),
             _content_overlap(claim, entry_cand["claim"].get("hi", "")),
+            _content_overlap(claim, row_cand),
         )
         combined = float(scores[idx]) * (1.0 + 0.6 * ol)
         if combined > best_combined:
@@ -562,20 +679,31 @@ def verify_claim(text, lang="en"):
 
     best_sim = float(sims[best_idx])
     entry = index["entries"][best_idx]
+    row_text = index["claims"][best_idx]
 
     overlap = max(
         _content_overlap(claim, entry["claim"].get("en", "")),
         _content_overlap(claim, entry["claim"].get("hi", "")),
+        _content_overlap(claim, row_text),
     )
-    ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", ""))
+    ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", "")) | _disease_keys(row_text)
     disease_conflict = bool(ck) and bool(ek) and not (ck & ek)
+    er_best = _entry_remedy_keys(entry, row_text)
+    remedy_conflict = bool(er_best) and not (rk & er_best) and (strict_remedy or best_sim < 0.90)
 
     use_curated = (
         (best_sim >= 0.70 and overlap >= 0.35 and not disease_conflict)
+        or (best_sim >= 0.80 and overlap >= 0.25 and not disease_conflict)
         or (best_sim >= FACTCHECK_SIM_THRESHOLD and overlap >= 0.40 and not disease_conflict)
-    )
+    ) and not remedy_conflict
+    if plain:
+        # A plain message was not marked as a claim by the user, so only a close match may answer it.
+        use_curated = use_curated and best_sim >= 0.75 and overlap >= 0.40
 
     if not use_curated:
+        if not allow_live:
+            # Claim detection on a plain message must be quick and offline: only a curated match may answer.
+            return {"verdict": "UNVERIFIABLE", "claim": claim}
         live = _live_lookup(claim, lang)
         if live:
             return live
