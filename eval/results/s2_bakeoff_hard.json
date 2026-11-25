@@ -1,0 +1,910 @@
+{
+  "scores": {
+    "bm25 | as typed": {
+      "en": {
+        "hit@5": 0.875,
+        "mrr@10": 0.719
+      },
+      "hi": {
+        "hit@5": 0.0,
+        "mrr@10": 0.0
+      },
+      "hinglish": {
+        "hit@5": 0.214,
+        "mrr@10": 0.131
+      },
+      "all": {
+        "hit@5": 0.333,
+        "mrr@10": 0.253
+      }
+    },
+    "bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.875,
+        "mrr@10": 0.719
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.619
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.734
+      },
+      "all": {
+        "hit@5": 0.9,
+        "mrr@10": 0.699
+      }
+    },
+    "bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.875,
+        "mrr@10": 0.719
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.629
+      },
+      "hinglish": {
+        "hit@5": 0.714,
+        "mrr@10": 0.613
+      },
+      "all": {
+        "hit@5": 0.8,
+        "mrr@10": 0.645
+      }
+    },
+    "bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.875,
+        "mrr@10": 0.719
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.685
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.798
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.746
+      }
+    },
+    "bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.875,
+        "mrr@10": 0.719
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.581
+      },
+      "hinglish": {
+        "hit@5": 0.714,
+        "mrr@10": 0.599
+      },
+      "all": {
+        "hit@5": 0.767,
+        "mrr@10": 0.626
+      }
+    },
+    "e5-base | as typed": {
+      "en": {
+        "hit@5": 0.75,
+        "mrr@10": 0.641
+      },
+      "hi": {
+        "hit@5": 0.5,
+        "mrr@10": 0.391
+      },
+      "hinglish": {
+        "hit@5": 0.214,
+        "mrr@10": 0.214
+      },
+      "all": {
+        "hit@5": 0.433,
+        "mrr@10": 0.375
+      }
+    },
+    "e5-base+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.76
+      },
+      "hi": {
+        "hit@5": 0.5,
+        "mrr@10": 0.192
+      },
+      "hinglish": {
+        "hit@5": 0.214,
+        "mrr@10": 0.186
+      },
+      "all": {
+        "hit@5": 0.5,
+        "mrr@10": 0.341
+      }
+    },
+    "e5-base | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.75,
+        "mrr@10": 0.641
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.812
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.845
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.782
+      }
+    },
+    "e5-base+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.76
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.812
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.783
+      },
+      "all": {
+        "hit@5": 0.933,
+        "mrr@10": 0.785
+      }
+    },
+    "e5-base | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.75,
+        "mrr@10": 0.641
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.721
+      },
+      "hinglish": {
+        "hit@5": 0.643,
+        "mrr@10": 0.663
+      },
+      "all": {
+        "hit@5": 0.7,
+        "mrr@10": 0.672
+      }
+    },
+    "e5-base+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.76
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.781
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.651
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.715
+      }
+    },
+    "e5-base | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.75,
+        "mrr@10": 0.641
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.729
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.893
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.782
+      }
+    },
+    "e5-base+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.76
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.768
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.929
+      },
+      "all": {
+        "hit@5": 0.933,
+        "mrr@10": 0.841
+      }
+    },
+    "e5-base | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.75,
+        "mrr@10": 0.641
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.812
+      },
+      "hinglish": {
+        "hit@5": 0.857,
+        "mrr@10": 0.705
+      },
+      "all": {
+        "hit@5": 0.833,
+        "mrr@10": 0.716
+      }
+    },
+    "e5-base+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.76
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.698
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.764
+      },
+      "all": {
+        "hit@5": 0.933,
+        "mrr@10": 0.746
+      }
+    },
+    "labse | as typed": {
+      "en": {
+        "hit@5": 0.5,
+        "mrr@10": 0.25
+      },
+      "hi": {
+        "hit@5": 0.625,
+        "mrr@10": 0.344
+      },
+      "hinglish": {
+        "hit@5": 0.286,
+        "mrr@10": 0.113
+      },
+      "all": {
+        "hit@5": 0.433,
+        "mrr@10": 0.211
+      }
+    },
+    "labse+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.5,
+        "mrr@10": 0.174
+      },
+      "hinglish": {
+        "hit@5": 0.286,
+        "mrr@10": 0.185
+      },
+      "all": {
+        "hit@5": 0.533,
+        "mrr@10": 0.35
+      }
+    },
+    "labse | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.5,
+        "mrr@10": 0.25
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.51
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.489
+      },
+      "all": {
+        "hit@5": 0.7,
+        "mrr@10": 0.431
+      }
+    },
+    "labse+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.5
+      },
+      "hinglish": {
+        "hit@5": 0.857,
+        "mrr@10": 0.674
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.664
+      }
+    },
+    "labse | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.5,
+        "mrr@10": 0.25
+      },
+      "hi": {
+        "hit@5": 0.5,
+        "mrr@10": 0.354
+      },
+      "hinglish": {
+        "hit@5": 0.714,
+        "mrr@10": 0.534
+      },
+      "all": {
+        "hit@5": 0.6,
+        "mrr@10": 0.41
+      }
+    },
+    "labse+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.625,
+        "mrr@10": 0.468
+      },
+      "hinglish": {
+        "hit@5": 0.714,
+        "mrr@10": 0.581
+      },
+      "all": {
+        "hit@5": 0.767,
+        "mrr@10": 0.613
+      }
+    },
+    "labse | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.5,
+        "mrr@10": 0.25
+      },
+      "hi": {
+        "hit@5": 0.625,
+        "mrr@10": 0.406
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.518
+      },
+      "all": {
+        "hit@5": 0.667,
+        "mrr@10": 0.417
+      }
+    },
+    "labse+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.605
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.708
+      },
+      "all": {
+        "hit@5": 0.833,
+        "mrr@10": 0.708
+      }
+    },
+    "labse | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.5,
+        "mrr@10": 0.25
+      },
+      "hi": {
+        "hit@5": 0.625,
+        "mrr@10": 0.424
+      },
+      "hinglish": {
+        "hit@5": 0.857,
+        "mrr@10": 0.56
+      },
+      "all": {
+        "hit@5": 0.7,
+        "mrr@10": 0.441
+      }
+    },
+    "labse+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.67
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.676
+      },
+      "all": {
+        "hit@5": 0.833,
+        "mrr@10": 0.711
+      }
+    },
+    "titan-v2 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.854
+      },
+      "hi": {
+        "hit@5": 0.5,
+        "mrr@10": 0.319
+      },
+      "hinglish": {
+        "hit@5": 0.357,
+        "mrr@10": 0.193
+      },
+      "all": {
+        "hit@5": 0.567,
+        "mrr@10": 0.403
+      }
+    },
+    "titan-v2+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.375,
+        "mrr@10": 0.212
+      },
+      "hinglish": {
+        "hit@5": 0.214,
+        "mrr@10": 0.151
+      },
+      "all": {
+        "hit@5": 0.467,
+        "mrr@10": 0.344
+      }
+    },
+    "titan-v2 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.854
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.817
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.702
+      },
+      "all": {
+        "hit@5": 0.9,
+        "mrr@10": 0.773
+      }
+    },
+    "titan-v2+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.729
+      },
+      "hinglish": {
+        "hit@5": 0.929,
+        "mrr@10": 0.74
+      },
+      "all": {
+        "hit@5": 0.933,
+        "mrr@10": 0.757
+      }
+    },
+    "titan-v2 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.854
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.567
+      },
+      "hinglish": {
+        "hit@5": 0.643,
+        "mrr@10": 0.486
+      },
+      "all": {
+        "hit@5": 0.8,
+        "mrr@10": 0.606
+      }
+    },
+    "titan-v2+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.714
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.645
+      },
+      "all": {
+        "hit@5": 0.833,
+        "mrr@10": 0.708
+      }
+    },
+    "titan-v2 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.854
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.651
+      },
+      "hinglish": {
+        "hit@5": 0.786,
+        "mrr@10": 0.671
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.715
+      }
+    },
+    "titan-v2+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.875,
+        "mrr@10": 0.708
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.743
+      },
+      "all": {
+        "hit@5": 0.967,
+        "mrr@10": 0.752
+      }
+    },
+    "titan-v2 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.854
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.598
+      },
+      "hinglish": {
+        "hit@5": 0.714,
+        "mrr@10": 0.655
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.693
+      }
+    },
+    "titan-v2+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.812
+      },
+      "hi": {
+        "hit@5": 0.75,
+        "mrr@10": 0.7
+      },
+      "hinglish": {
+        "hit@5": 0.857,
+        "mrr@10": 0.744
+      },
+      "all": {
+        "hit@5": 0.867,
+        "mrr@10": 0.75
+      }
+    }
+  },
+  "misses": {
+    "e5-base | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "newborn-not-feeding (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "pregnancy-swelling-headache (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "krait-night-bite (en)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "blood-in-sputum (hi)",
+      "haemoglobin-normal (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "e5-base+bm25 | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "newborn-not-feeding (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "pregnancy-swelling-headache (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "blood-in-sputum (hi)",
+      "haemoglobin-normal (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "e5-base | rewrite gemma-3-27b": [
+      "vaccines-six-weeks (hi)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "krait-night-bite (en)"
+    ],
+    "e5-base+bm25 | rewrite gemma-3-27b": [
+      "yellow-eyes-urine (hinglish)",
+      "vaccines-six-weeks (hi)"
+    ],
+    "e5-base | rewrite gpt-oss-120b": [
+      "yellow-eyes-urine (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "krait-night-bite (en)",
+      "blood-in-sputum (hi)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "e5-base+bm25 | rewrite gpt-oss-120b": [
+      "yellow-eyes-urine (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)"
+    ],
+    "e5-base | rewrite gemma-3-27b+glossary": [
+      "vaccines-six-weeks (hi)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "krait-night-bite (en)"
+    ],
+    "e5-base+bm25 | rewrite gemma-3-27b+glossary": [
+      "vaccines-six-weeks (hi)",
+      "malaria-full-course (hi)"
+    ],
+    "e5-base | rewrite gpt-oss-120b+glossary": [
+      "snakebite-unsure-marks (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "krait-night-bite (en)"
+    ],
+    "e5-base+bm25 | rewrite gpt-oss-120b+glossary": [
+      "yellow-eyes-urine (hinglish)",
+      "vaccines-six-weeks (hi)"
+    ],
+    "labse | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "newborn-not-feeding (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "iron-tablets-pregnancy (en)",
+      "pregnancy-swelling-headache (hinglish)",
+      "fever-after-vaccine (hinglish)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "typhoid-vaccine (en)",
+      "blood-in-sputum (hi)",
+      "observe-dog-ten-days (hinglish)",
+      "measles-danger (en)"
+    ],
+    "labse+bm25 | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "newborn-not-feeding (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "pregnancy-swelling-headache (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "blood-in-sputum (hi)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "labse | rewrite gemma-3-27b": [
+      "child-loose-motion-cramps (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "iron-tablets-pregnancy (en)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "malaria-full-course (hi)",
+      "typhoid-vaccine (en)",
+      "blood-in-sputum (hi)",
+      "measles-danger (en)"
+    ],
+    "labse+bm25 | rewrite gemma-3-27b": [
+      "vaccines-six-weeks (hi)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "blood-in-sputum (hi)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "labse | rewrite gpt-oss-120b": [
+      "child-loose-motion-cramps (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "dog-scratch-no-blood (hi)",
+      "snakebite-unsure-marks (hinglish)",
+      "iron-tablets-pregnancy (en)",
+      "pregnancy-swelling-headache (hinglish)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "malaria-full-course (hi)",
+      "typhoid-vaccine (en)",
+      "blood-in-sputum (hi)",
+      "measles-danger (en)"
+    ],
+    "labse+bm25 | rewrite gpt-oss-120b": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "dog-scratch-no-blood (hi)",
+      "vaccines-six-weeks (hi)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "labse | rewrite gemma-3-27b+glossary": [
+      "fever-test-malaria-dengue (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "snakebite-unsure-marks (hinglish)",
+      "iron-tablets-pregnancy (en)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "malaria-full-course (hi)",
+      "typhoid-vaccine (en)",
+      "blood-in-sputum (hi)",
+      "measles-danger (en)"
+    ],
+    "labse+bm25 | rewrite gemma-3-27b+glossary": [
+      "child-loose-motion-cramps (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "malaria-full-course (hi)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "labse | rewrite gpt-oss-120b+glossary": [
+      "child-loose-motion-cramps (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "iron-tablets-pregnancy (en)",
+      "tb-home-precautions (en)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "malaria-full-course (hi)",
+      "typhoid-vaccine (en)",
+      "blood-in-sputum (hi)",
+      "measles-danger (en)"
+    ],
+    "labse+bm25 | rewrite gpt-oss-120b+glossary": [
+      "fever-test-malaria-dengue (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "vaccines-six-weeks (hi)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "titan-v2 | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "snakebite-unsure-marks (hinglish)",
+      "pregnancy-swelling-headache (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "blood-in-sputum (hi)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2+bm25 | as typed": [
+      "child-loose-motion-cramps (hinglish)",
+      "yellow-eyes-urine (hinglish)",
+      "dizzy-headache-after-sun (hi)",
+      "fever-test-malaria-dengue (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "snakebite-unsure-marks (hinglish)",
+      "pregnancy-swelling-headache (hinglish)",
+      "vaccines-six-weeks (hi)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "feeding-during-diarrhoea (hinglish)",
+      "malaria-full-course (hi)",
+      "hepb-birth-dose (hinglish)",
+      "blood-in-sputum (hi)",
+      "haemoglobin-normal (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2 | rewrite gemma-3-27b": [
+      "newborn-not-feeding (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gemma-3-27b": [
+      "vaccines-six-weeks (hi)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "titan-v2 | rewrite gpt-oss-120b": [
+      "yellow-eyes-urine (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "snakebite-unsure-marks (hinglish)",
+      "fever-after-vaccine (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gpt-oss-120b": [
+      "yellow-eyes-urine (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "vaccines-six-weeks (hi)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "haemoglobin-normal (hinglish)"
+    ],
+    "titan-v2 | rewrite gemma-3-27b+glossary": [
+      "newborn-not-feeding (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "blood-in-sputum (hi)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gemma-3-27b+glossary": [
+      "vaccines-six-weeks (hi)"
+    ],
+    "titan-v2 | rewrite gpt-oss-120b+glossary": [
+      "newborn-not-feeding (hinglish)",
+      "snakebite-unsure-marks (hinglish)",
+      "hunger-thirst-weight-loss (hinglish)",
+      "observe-dog-ten-days (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gpt-oss-120b+glossary": [
+      "yellow-eyes-urine (hinglish)",
+      "fever-test-malaria-dengue (hinglish)",
+      "dog-scratch-no-blood (hi)",
+      "vaccines-six-weeks (hi)"
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 """S2 bake-off: which search method finds the right chunk for English, Hindi and Hinglish questions?
 
 Run:  python -m eval.retrieval_bakeoff [--models e5-base,labse,titan-v2]
+      python -m eval.retrieval_bakeoff --golden eval/golden_retrieval_hard.yaml --out s2_bakeoff_hard
 
 Methods compared
   bm25            keyword search only
@@ -28,6 +29,7 @@ import yaml
 from app.retrieval.embedders import EMBEDDERS, passage_text
 from app.retrieval.fusion import reciprocal_rank_fusion
 from app.retrieval.keyword import KeywordIndex
+from app.retrieval.rewrite import REWRITE_PROMPT as APP_REWRITE_PROMPT
 
 ROOT = Path(__file__).resolve().parent.parent
 CHUNKS = ROOT / "data" / "chunks" / "chunks.jsonl"
@@ -41,19 +43,9 @@ MRR_DEPTH = 10
 GEMMA, GPT_OSS = "google.gemma-3-27b-it", "openai.gpt-oss-120b-1:0"
 REWRITE_PROMPT = ("Rewrite this health question as one short, plain English question. Keep every medical term. "
                   "Reply with the question only.\n\nQuestion: {q}")
-# Everyday Hindi words for illnesses that both models got wrong in the first run ("loo" became "leukemia" or
-# stayed "loo"). Kept general, not limited to the test questions; see the caveat in docs/v2/BUILD_LOG.md (S2).
-GLOSSARY = ("loo / लू = heat stroke; dast / दस्त = diarrhoea; ulti / उल्टी = vomiting; bukhar / बुखार = fever; "
-            "khansi / खांसी = cough; khoon ki kami / खून की कमी = anaemia; sugar / शुगर = diabetes; BP = blood pressure; "
-            "pilia / पीलिया = jaundice; khasra / खसरा = measles; teeka / टीका = vaccine; machhardani / मच्छरदानी = "
-            "mosquito net; saans / सांस = breathing; peshab / पेशाब = urine; garbh / गर्भ = pregnancy; "
-            "din = days; hafte / हफ्ते = weeks; mahine / महीने = months; teen = three (not a teenager)")
-# First version put the word list under "Common words:" and Gemma then often copied the Hinglish back untranslated
-# ("Typhoid kaise failta hai?"). This version says the reply must be English and the list is only for lookup.
-REWRITE_PROMPT_GLOSSARY = (
-    "Translate this health question into one short, plain English question. The reply must be in English only, "
-    "with no Hindi or Hinglish words left. Keep every medical term. Reply with the question only.\n\n"
-    "If the question uses one of these everyday Hindi words, this is its meaning: " + GLOSSARY + "\n\nQuestion: {q}")
+# The word-list prompt is the one the app uses (app/retrieval/rewrite.py). Its first version put the list under
+# "Common words:" and Gemma then often copied the Hinglish back untranslated ("Typhoid kaise failta hai?").
+REWRITE_PROMPT_GLOSSARY = APP_REWRITE_PROMPT
 # name -> (Bedrock model id, prompt)
 REWRITERS = {
     "gemma-3-27b": (GEMMA, REWRITE_PROMPT),
@@ -74,14 +66,18 @@ def is_relevant(topic: dict, chunk: dict) -> bool:
             and all(p in text for p in topic.get("all", [])))
 
 
-def load_questions(chunks):
-    """One row per (topic, language): the question and the set of chunk positions that count as correct."""
+def load_questions(chunks, golden: Path = GOLDEN):
+    """One row per question: topic, language, text and the set of chunk positions that count as correct.
+
+    A topic either has `questions: {en, hi, hinglish}` (first set: one topic asked three ways) or a single
+    `question` with its `lang` (hard set)."""
     rows = []
-    for topic in yaml.safe_load(GOLDEN.open(encoding="utf-8"))["topics"]:
+    for topic in yaml.safe_load(Path(golden).open(encoding="utf-8"))["topics"]:
         correct = {i for i, c in enumerate(chunks) if is_relevant(topic, c)}
         assert correct, f"answer key for {topic['id']} matches no chunk"
-        for lang in LANGS:
-            rows.append({"topic": topic["id"], "lang": lang, "question": topic["questions"][lang], "correct": correct})
+        asked = topic["questions"].items() if "questions" in topic else [(topic["lang"], topic["question"])]
+        for lang, question in asked:
+            rows.append({"topic": topic["id"], "lang": lang, "question": question, "correct": correct})
     return rows
 
 
@@ -158,9 +154,9 @@ def score(rankings: list[list[int]], rows) -> dict:
     return out
 
 
-def main(model_names):
+def main(model_names, golden: Path = GOLDEN, out_name: str = "s2_bakeoff"):
     chunks = load_chunks()
-    rows = load_questions(chunks)
+    rows = load_questions(chunks, golden)
     rewrites = english_rewrites(rows)
     query_sets = {"as typed": [r["question"] for r in rows]}
     for name in REWRITERS:
@@ -185,37 +181,40 @@ def main(model_names):
             hybrid_rank = [reciprocal_rank_fusion([d, k]) for d, k in zip(dense_rank, keyword_rank[mode])]
             results[f"{name} | {mode}"] = score(dense_rank, rows)
             results[f"{name}+bm25 | {mode}"] = score(hybrid_rank, rows)
-            misses[f"{name}+bm25 | {mode}"] = [
-                f"{r['topic']} ({r['lang']})" for ranking, r in zip(hybrid_rank, rows)
-                if not set(ranking[:TOP_K]) & r["correct"]]
+            for label, ranks in ((name, dense_rank), (f"{name}+bm25", hybrid_rank)):
+                misses[f"{label} | {mode}"] = [f"{r['topic']} ({r['lang']})" for ranking, r in zip(ranks, rows)
+                                               if not set(ranking[:TOP_K]) & r["correct"]]
         del embedder
-    write_report(results, misses, rows, rewrites)
+    write_report(results, misses, rows, rewrites, Path(golden), out_name)
     return results
 
 
-def write_report(results, misses, rows, rewrites):
+def write_report(results, misses, rows, rewrites, golden: Path, out_name: str):
     RESULTS.mkdir(parents=True, exist_ok=True)
-    (RESULTS / "s2_bakeoff.json").write_text(json.dumps({"scores": results, "misses": misses}, indent=2),
-                                             encoding="utf-8")
-    lines = ["# S2 retrieval bake-off", "",
-             f"{len(rows) // 3} topics x 3 languages = {len(rows)} questions. hit@5 / MRR@10.", "",
+    (RESULTS / f"{out_name}.json").write_text(json.dumps({"scores": results, "misses": misses}, indent=2),
+                                              encoding="utf-8")
+    per_lang = ", ".join(f"{lang} {sum(r['lang'] == lang for r in rows)}" for lang in LANGS)
+    lines = [f"# S2 retrieval bake-off: {golden.name}", "",
+             f"{len(rows)} questions ({per_lang}). hit@5 / MRR@10.", "",
              "| Method | Query | English | Hindi | Hinglish | All |", "|---|---|---|---|---|---|"]
     for key, s in results.items():
         method, mode = key.split(" | ")
         cells = [f"{s[l]['hit@5']:.2f} / {s[l]['mrr@10']:.2f}" for l in (*LANGS, "all")]
         lines.append(f"| {method} | {mode} | " + " | ".join(cells) + " |")
-    lines += ["", "## Questions the hybrid methods missed (no correct chunk in the top 5)", ""]
+    lines += ["", "## Questions missed (no correct chunk in the top 5)", ""]
     lines += [f"- **{k}**: {', '.join(v) or 'none'}" for k, v in misses.items()]
     lines += ["", "## English rewrites used", "", "| Question | " + " | ".join(REWRITERS) + " |",
               "|---|" + "---|" * len(REWRITERS)]
     for q in (r["question"] for r in rows if r["lang"] != "en"):
         lines.append(f"| {q} | " + " | ".join(rewrites[m].get(q, "") for m in REWRITERS) + " |")
-    (RESULTS / "s2_bakeoff.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (RESULTS / f"{out_name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--models", default="e5-base,labse,titan-v2")
+    parser.add_argument("--golden", default=str(GOLDEN))
+    parser.add_argument("--out", default="s2_bakeoff")
     args = parser.parse_args()
-    for key, s in main(args.models.split(",")).items():
+    for key, s in main(args.models.split(","), Path(args.golden), args.out).items():
         print(f"{key:34} " + "  ".join(f"{l}={s[l]['hit@5']:.2f}/{s[l]['mrr@10']:.2f}" for l in (*LANGS, "all")))

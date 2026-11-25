@@ -170,7 +170,7 @@ some ASHA chunks are administrative (incentive tables). The full 20-chunk sample
 
 ---
 
-## S2: search (retrieval) bake-off (2026-11-25, in progress)
+## S2: search (2026-11-25 to 26)
 
 **Goal.** Choose how the bot finds the right chunks for a question in English, Hindi or Hinglish, using numbers
 rather than reputation. The answer step (S3) reads the top 5 chunks, so the main score is hit@5.
@@ -246,3 +246,67 @@ Full table (all 35 combinations) and every rewrite: `eval/results/s2_bakeoff.md`
 - **Caveats**: the best setups reach 1.00, so this set can no longer separate them; the glossary and the
   answer-key fix were both made after seeing these questions, so these scores are optimistic. A fresh set of
   questions written without looking at the glossary is needed before the final choice.
+
+### Hard test (fresh set, written before any run on it)
+
+`eval/golden_retrieval_hard.yaml`: 30 questions (8 English, 8 Hindi, 14 Hinglish) with everyday words that are not
+in the rewrite word list ("pet me marod", "peela", "sust", "chakkar", "garbhvati", "balgam", "dedh mahina"),
+two-symptom and vague questions. Nothing was changed after seeing the results.
+Full table: `eval/results/s2_bakeoff_hard.md`. One question = 0.03 overall (0.125 for English or Hindi, 0.07 for
+Hinglish).
+
+| Method | Query | English | Hindi | Hinglish | All |
+|---|---|---|---|---|---|
+| e5-base | as typed | 0.75 / 0.64 | 0.50 / 0.39 | 0.21 / 0.21 | 0.43 / 0.38 |
+| Titan v2 | as typed | 1.00 / 0.85 | 0.50 / 0.32 | 0.36 / 0.19 | 0.57 / 0.40 |
+| e5-base | Gemma + glossary | 0.75 / 0.64 | 0.88 / 0.73 | 0.93 / 0.89 | 0.87 / 0.78 |
+| **e5-base + BM25** | **Gemma + glossary** | 1.00 / 0.76 | 0.75 / 0.77 | 1.00 / 0.93 | **0.93 / 0.84** |
+| e5-base + BM25 | Gemma, no glossary | 1.00 / 0.76 | 0.88 / 0.81 | 0.93 / 0.78 | 0.93 / 0.79 |
+| e5-base + BM25 | gpt-oss + glossary | 1.00 / 0.76 | 0.88 / 0.70 | 0.93 / 0.76 | 0.93 / 0.75 |
+| Titan v2 + BM25 | Gemma + glossary | 1.00 / 0.81 | 0.88 / 0.71 | 1.00 / 0.74 | 0.97 / 0.75 |
+| LaBSE + BM25 | Gemma + glossary | 1.00 / 0.81 | 0.75 / 0.60 | 0.79 / 0.71 | 0.83 / 0.71 |
+
+Missed by e5 + BM25 + Gemma glossary: "बच्चे को डेढ़ महीने पर कौन से टीके" (rewritten correctly to "one and a half
+months"; the documents say "6 weeks") and "मलेरिया की दवा बीच में छोड़ दें" ("stopped early"; the documents say
+"complete treatment"). Both rewrites were right; the gap is in wording, not meaning.
+
+### Decisions (2026-11-26)
+
+| Decision | Choice | Evidence |
+|---|---|---|
+| Embedding model | **e5-base** (decided by him) | Ties Titan within one question on both sets; free, no rate limit, works offline, open paper |
+| Keyword search | **Keep BM25 + RRF (hybrid)** | Hard set: e5 alone missed 2 of 8 English questions (TB home precautions, krait at night); with BM25 English 1.00 and overall 0.87 -> 0.93 |
+| Rewrite model | **Gemma 3 27B** (the answer model) | Beat gpt-oss on both sets; gpt-oss left words untranslated |
+| Word list | **Keep** | Same hits on the hard set, better ranking (MRR 0.79 -> 0.84), and it prevents dangerous misreadings (heat stroke read as leukemia) |
+
+### Built for the app
+
+| File | Job |
+|---|---|
+| `app/retrieval/rewrite.py` | `needs_rewrite()` (Devanagari, or 2+ common Hindi words in Latin letters: right on all 111 test questions); `to_english()` with the measured prompt; falls back to the question on error, timeout (6 s), empty, too long or still-Hindi replies; English skips the call |
+| `app/retrieval/index.py` | `build()`: e5 vectors + chunk payloads into Qdrant local mode (`data/index/qdrant`, 29 MB, collection `library`, cosine) |
+| `app/retrieval/search.py` | `Searcher.search(question, k=5, allow_dose=True)` -> `SearchResult(question, query, chunks)`: rewrite -> e5 -> Qdrant top 50 + BM25 top 50 -> RRF -> top 5; `allow_dose=False` filters dose chunks inside Qdrant and BM25 |
+| `tests/test_search.py` | 12 tests with a fake embedding model: rewrite skip/fallbacks/cleaning, index build, ranking, citation fields, dose filter, dense-only mode |
+
+`qdrant-client==1.20.0` (https://pypi.org/project/qdrant-client/) added to `requirements-ingest.txt` (it adds
+grpcio and portalocker; numpy and pydantic unchanged); it moves to `requirements.txt` in S4.
+Qdrant local mode: https://qdrant.tech/documentation/quickstart/ (Python client, `QdrantClient(path=...)`).
+
+### Speed and memory
+
+- Laptop CPU only (GPU hidden), 4 threads: e5 question vector 140-290 ms; whole search without rewrite 140-245 ms;
+  Gemma rewrite adds ~0.5-0.7 s for Hindi/Hinglish. Loading e5 at startup ~30 s; process ~1.0 GB RAM.
+- Server (read only, 2026-11-26): 12 GB total, ~2.0 GB available, no swap; two `llama-server` processes use ~4.3 and
+  ~3.6 GB; the portfolio app uses ~0.66 GB (it already loads LaBSE); one uvicorn worker (needed: Qdrant local mode
+  allows one process per folder). e5 replacing LaBSE adds ~0.5 GB; both at once would be tight. Decide in S4.
+
+### Open points
+
+1. The 30-question hard set is small (English and Hindi have 8 questions each). Good enough to choose, not a
+   published accuracy figure; S6 needs a larger set.
+2. Some chunks still contain symbol-font characters (e.g. "\x83" used as a bullet in ASHA Module B). Cleaning them
+   changes the chunk file, which means re-embedding (e5 about 1 minute; Titan an hour, not needed now).
+3. "What should I feed a baby with diarrhoea?" returned general ASHA newborn and cough pages in the top 3 (the IDCF
+   feeding advice was lower). S3 will show whether 5 chunks are enough or whether the answer step needs more.
+4. Possible later word-list additions found by the hard set ("dedh mahina = 6 weeks") were NOT added, so the hard
+   set stays a fair test.
