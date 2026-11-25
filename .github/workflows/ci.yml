@@ -33,6 +33,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install -r requirements-ingest.txt
           pip install pytest
 
       # LaBSE (about 1.8 GB) lives in the Hugging Face cache; the language-id model lives in data/models.

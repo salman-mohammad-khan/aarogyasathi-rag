@@ -97,3 +97,8 @@ scripts/build_defense_guide_pdf.py
 .~lock.*
 output/report/source/patch_content*.py
 docs/AarogyaSathi_Audit_*.md
+
+# v2 document library: downloaded files, chunks and search index are rebuilt from sources/manifest.yaml
+data/raw/
+data/chunks/
+data/index/
