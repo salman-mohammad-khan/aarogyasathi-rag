@@ -436,3 +436,56 @@ The judge "amount" flags in the final run were read one by one: all are single-j
 4. 40 questions is a small set; some outcomes changed between runs at temperature 0 (the pimples answer).
 5. Answers to the 8 dose questions sometimes keep clinical lines meant for health workers (ASV infusion, intradermal
    technique). S4's prompt or a short "public answer" check could trim these.
+
+---
+
+## S4: v2 in the app (2026-11-26)
+
+**Goal.** Answer real chats with v2 (library search and cited answers) while keeping every tested v1 safety step,
+with a one-line switch back to v1.
+
+```
+message -> empty? help
+        -> emergency / self-harm word rules -> emergency reply (+ cited first aid for dog bite and heat stroke)
+        -> instruction override -> fixed refusal
+        -> "fact check" or a known myth -> v1 fact-check (S5 moves it onto the library)
+        -> greeting
+        -> follow-up joining -> search -> cited answer (Qwen, Gemma fallback)
+        (in parallel: Gemma safety check; an EMERGENCY / SELF_HARM label replaces the answer)
+```
+
+### Files
+
+| File | Change |
+|---|---|
+| `app/pipeline.py` | New. `process_message(text, session, answerer)`; `_rules_first()` reuses the v1 safety, guard and fact-check code in the same order as the v1 router; `is_follow_up()` / `with_context()` (short follow-ups within 10 minutes are joined to the previous question; a message that names its own disease or symptom is not); `needs_first_aid()` |
+| `app/main.py` | `PIPELINE` switch; v2 builds the searcher and answer chain at startup (clear error if the index is missing); `/api/chat` returns `pipeline` and `sources`; `/api/health` shows the answer and fallback model and the library size; v2 skips v1's intent model, KB retriever and conversation summaries |
+| `app/config.py` | `PIPELINE` (default `v2`; `v1` = old router, kept until S6) |
+| `app/retrieval/rewrite.py` | Rewrite now goes through `ChatBedrockConverse` (same client and credentials as the answers; 6 s timeout); `question_language()` word list widened ("se", "me", "khaye"...) after "malaria se kaise bache" was read as English; still right on all 151 test questions |
+| `app/answer/chain.py` | 20 s timeout per call so the Gemma fallback can take over; `answer(question, lang=...)` |
+| `web/chat.js`, `web/style.css` | Numbered source list under each answer, linked to the PDF page (`#page=N`); route labels for v2; light Markdown tidied into bullets; waiting texts updated ("the model runs locally" was no longer true); the two hidden greeting calls at page load removed |
+| `scripts/deploy.sh` | Uploads the search index (not in git), backs it up, and a v2 smoke test (a library question must return sources) |
+| `requirements.txt` | Adds rank-bm25, qdrant-client, boto3, langchain-core, langchain-aws (moved from `requirements-ingest.txt`) |
+| `tests/test_pipeline.py` | 24 tests: emergencies and self-harm never reach the library, injection, fact-check, greeting, language passed on, dose questions now reach the library and its checks, follow-ups (joined, not joined, expired), first aid added only for bites and heat stroke, model safety check overrides |
+
+### What happened
+
+1. **boto3 uses the Bedrock API key.** Checked with the laptop's expired key: boto3 answered "Bearer Token has
+   expired", so on the server (`AWS_BEARER_TOKEN_BEDROCK` in `.env`, valid to 2027-11-17) LangChain needs no other
+   credentials. Locally the app runs with the AWS CLI login (scratchpad launcher removes the expired key).
+2. **v1 emergency rules and first aid.** "What should I do after a dog bite?" fired the `rabid_animal` rule and got
+   only "call 108 now"; "I have heat stroke symptoms" fired the brain-`stroke` rule. The rules were not weakened:
+   for these two the emergency reply stays first and the cited library first aid is added below (wash 15 minutes,
+   no chilli/turmeric, anti-rabies vaccine at the PHC). Informational wordings ("signs of heat stroke") already pass
+   the v1 info filter and get a normal library answer.
+3. **Local browser check** (desktop and 375 px phone width): cited answers, numbered clickable sources (ASHA PDF
+   opens at page 143), no sideways scrolling.
+
+### Open points
+
+- Emergency replies for Hinglish users come in Devanagari Hindi (v1 maps Hinglish to "hi"); the added first aid is
+  in Hinglish, so one reply can mix scripts.
+- Qwen's Hinglish has small word slips ("daurte pani" for running water).
+- The landing page text above the chat still describes v1 (64 myths, 14 diseases, 396 tests): S6.
+- WhatsApp (off) still uses the v1 router.
+- Files removed in S0 (admin page, surveillance) are still on the server until the deploy removes them by hand.

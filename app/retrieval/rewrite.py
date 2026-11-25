@@ -32,6 +32,8 @@ _HINGLISH_WORDS = frozenset("""
 hai hain kya kaise kyu kyun kab kaun kitna kitne kitni nahi nahin mujhe mera meri mere hamara ka ke ki ko mein
 bhi aur wala wale wali chahiye karna kare karein karu raha rahi rahe hota hoti hote gaya gayi lagta lagti lagte
 ho jaye jana dena lena kuch bahut baar bachcha bachche bacche bimari dawai dawa ilaj ilaaj lakshan
+se par pe bache bachne bachao bachav kare karen karu upay ghar sakte sakta sakti me khaye khana khana peena
+piye pina kyon theek thik
 """.split())
 
 
@@ -50,11 +52,21 @@ def question_language(question: str) -> str:
     return "hinglish" if needs_rewrite(question) else "en"
 
 
-def _call_model(prompt: str) -> str | None:
-    """One short call to the answer model on Bedrock (Gemma 3 27B); None on any failure or timeout."""
-    from app.core import generator
+REWRITE_MODEL_ID = "google.gemma-3-27b-it"  # measured in S2
+_rewrite_llm = None
 
-    return generator.generate_hosted(REWRITE_SYSTEM, prompt, REWRITE_MAX_TOKENS, REWRITE_TIMEOUT_S)
+
+def _call_model(prompt: str) -> str | None:
+    """One short call to Gemma 3 27B on Bedrock through LangChain (same client and credentials as the answer step)."""
+    global _rewrite_llm
+    if _rewrite_llm is None:
+        from botocore.config import Config
+        from langchain_aws import ChatBedrockConverse
+
+        _rewrite_llm = ChatBedrockConverse(
+            model=REWRITE_MODEL_ID, region_name="ap-south-1", temperature=0, max_tokens=REWRITE_MAX_TOKENS,
+            config=Config(read_timeout=REWRITE_TIMEOUT_S, connect_timeout=3, retries={"max_attempts": 1}))
+    return _rewrite_llm.invoke([("system", REWRITE_SYSTEM), ("human", prompt)]).text
 
 
 def to_english(question: str, ask=_call_model) -> str:

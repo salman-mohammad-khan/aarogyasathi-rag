@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from app import config
+from app import config, pipeline
 from app.ratelimit import rate_limit_chat
 from app.core import embeddings, generator, intent, kb, language, retriever
 from app.core import session as session_store
@@ -44,23 +44,41 @@ class ChatResponse(BaseModel):
     llm_backend: str | None = None
     flow: str | None = None
     factcheck: dict | None = None
+    pipeline: str = "v1"
+    sources: list[dict] = []  # v2: the documents and pages the answer cites
 
 
 _started = False
+_answerer = None  # v2: search index + answer chain, built once at startup
+
+
+def _build_answerer():
+    """Open the Qdrant index and load e5 (about 30-60 s on the server CPU), then build the answer chain."""
+    from app.answer.chain import Answerer
+    from app.retrieval.index import INDEX_DIR
+    from app.retrieval.search import Searcher
+
+    if not INDEX_DIR.exists():
+        raise RuntimeError(f"PIPELINE=v2 needs the search index at {INDEX_DIR}. Build it with "
+                           "`python -m ingest.build_chunks` and `python -m app.retrieval.index`, or set PIPELINE=v1.")
+    return Answerer(Searcher())
 
 
 @app.on_event("startup")
 def startup():
-    global _started
+    global _started, _answerer
     if _started:
         return
     _started = True
     kb.load()
-    intent.load()
     language._load()
-    retriever._ensure_index()
-    verifier._ensure_index()
+    verifier._ensure_index()  # fact-check still uses LaBSE until S5
     embeddings.get_model()
+    if config.PIPELINE == "v2":
+        _answerer = _build_answerer()
+    else:
+        intent.load()
+        retriever._ensure_index()
 
 
 def _update_summary(session):
@@ -85,28 +103,38 @@ def index():
 @app.get("/api/health")
 def health():
     generator.reset_availability()
-    return {
+    info = {
         "status": "ok",
         "models": "loaded",
+        "pipeline": config.PIPELINE,
         "llm": {
             "backend": generator.backend(),
             "model": generator.model_name(),
         },
         "languages": config.SUPPORTED_LANGUAGES,
     }
+    if config.PIPELINE == "v2":
+        from app.answer.chain import ANSWER_MODEL_ID, FALLBACK_MODEL_ID
+
+        info["llm"] = {"backend": "bedrock", "model": ANSWER_MODEL_ID, "fallback": FALLBACK_MODEL_ID}
+        info["library_chunks"] = len(getattr(_answerer.searcher, "chunks", [])) if _answerer else 0
+    return info
 
 
 @app.post("/api/chat", response_model=ChatResponse, dependencies=[Depends(rate_limit_chat)])
 def chat(req: ChatRequest):
     start = time.time()
     session = session_store.get_session(req.session_id)
-    result = process_message(req.message, None, session)
-    history = session.get("history") or []
-    history.append({"role": "user", "text": req.message[:200]})
-    history.append({"role": "bot", "text": result["text"][:300]})
-    session.set("history", history[-12:])
-    if len(history) >= 6 and (len(history) // 2) % 3 == 0:
-        _update_summary(session)
+    if config.PIPELINE == "v2":
+        result = pipeline.process_message(req.message, session, _answerer)
+    else:
+        result = process_message(req.message, None, session)
+        history = session.get("history") or []
+        history.append({"role": "user", "text": req.message[:200]})
+        history.append({"role": "bot", "text": result["text"][:300]})
+        session.set("history", history[-12:])
+        if len(history) >= 6 and (len(history) // 2) % 3 == 0:
+            _update_summary(session)
     latency = int((time.time() - start) * 1000)
     meta = result.get("meta", {})
     factcheck = meta.get("factcheck")
@@ -134,6 +162,8 @@ def chat(req: ChatRequest):
         llm_backend=generator.last_backend(),
         flow=meta.get("flow"),
         factcheck=factcheck,
+        pipeline=config.PIPELINE,
+        sources=meta.get("sources") or [],
     )
 
 
