@@ -1,0 +1,777 @@
+{
+  "scores": {
+    "bm25 | as typed": {
+      "en": {
+        "hit@5": 0.926,
+        "mrr@10": 0.72
+      },
+      "hi": {
+        "hit@5": 0.0,
+        "mrr@10": 0.0
+      },
+      "hinglish": {
+        "hit@5": 0.444,
+        "mrr@10": 0.253
+      },
+      "all": {
+        "hit@5": 0.457,
+        "mrr@10": 0.324
+      }
+    },
+    "bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.926,
+        "mrr@10": 0.72
+      },
+      "hi": {
+        "hit@5": 0.852,
+        "mrr@10": 0.656
+      },
+      "hinglish": {
+        "hit@5": 0.815,
+        "mrr@10": 0.586
+      },
+      "all": {
+        "hit@5": 0.864,
+        "mrr@10": 0.654
+      }
+    },
+    "bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.926,
+        "mrr@10": 0.72
+      },
+      "hi": {
+        "hit@5": 0.852,
+        "mrr@10": 0.649
+      },
+      "hinglish": {
+        "hit@5": 0.778,
+        "mrr@10": 0.573
+      },
+      "all": {
+        "hit@5": 0.852,
+        "mrr@10": 0.647
+      }
+    },
+    "bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.926,
+        "mrr@10": 0.72
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.734
+      },
+      "hinglish": {
+        "hit@5": 0.926,
+        "mrr@10": 0.669
+      },
+      "all": {
+        "hit@5": 0.926,
+        "mrr@10": 0.708
+      }
+    },
+    "bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.926,
+        "mrr@10": 0.72
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.748
+      },
+      "hinglish": {
+        "hit@5": 0.963,
+        "mrr@10": 0.764
+      },
+      "all": {
+        "hit@5": 0.951,
+        "mrr@10": 0.744
+      }
+    },
+    "e5-base | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.892
+      },
+      "hi": {
+        "hit@5": 0.741,
+        "mrr@10": 0.61
+      },
+      "hinglish": {
+        "hit@5": 0.333,
+        "mrr@10": 0.237
+      },
+      "all": {
+        "hit@5": 0.691,
+        "mrr@10": 0.58
+      }
+    },
+    "e5-base+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.806
+      },
+      "hi": {
+        "hit@5": 0.667,
+        "mrr@10": 0.523
+      },
+      "hinglish": {
+        "hit@5": 0.37,
+        "mrr@10": 0.292
+      },
+      "all": {
+        "hit@5": 0.679,
+        "mrr@10": 0.54
+      }
+    },
+    "e5-base | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.892
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.861
+      },
+      "hinglish": {
+        "hit@5": 0.926,
+        "mrr@10": 0.784
+      },
+      "all": {
+        "hit@5": 0.963,
+        "mrr@10": 0.846
+      }
+    },
+    "e5-base+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.806
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.747
+      },
+      "hinglish": {
+        "hit@5": 0.926,
+        "mrr@10": 0.716
+      },
+      "all": {
+        "hit@5": 0.951,
+        "mrr@10": 0.756
+      }
+    },
+    "e5-base | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.892
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.765
+      },
+      "hinglish": {
+        "hit@5": 0.889,
+        "mrr@10": 0.739
+      },
+      "all": {
+        "hit@5": 0.938,
+        "mrr@10": 0.799
+      }
+    },
+    "e5-base+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.806
+      },
+      "hi": {
+        "hit@5": 0.889,
+        "mrr@10": 0.772
+      },
+      "hinglish": {
+        "hit@5": 0.963,
+        "mrr@10": 0.713
+      },
+      "all": {
+        "hit@5": 0.951,
+        "mrr@10": 0.763
+      }
+    },
+    "e5-base | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.892
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.855
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.861
+      },
+      "all": {
+        "hit@5": 1.0,
+        "mrr@10": 0.869
+      }
+    },
+    "e5-base+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.806
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.852
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.846
+      },
+      "all": {
+        "hit@5": 1.0,
+        "mrr@10": 0.834
+      }
+    },
+    "e5-base | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.892
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.836
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.855
+      },
+      "all": {
+        "hit@5": 1.0,
+        "mrr@10": 0.861
+      }
+    },
+    "e5-base+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.806
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.846
+      },
+      "hinglish": {
+        "hit@5": 0.963,
+        "mrr@10": 0.827
+      },
+      "all": {
+        "hit@5": 0.975,
+        "mrr@10": 0.826
+      }
+    },
+    "labse | as typed": {
+      "en": {
+        "hit@5": 0.815,
+        "mrr@10": 0.594
+      },
+      "hi": {
+        "hit@5": 0.741,
+        "mrr@10": 0.523
+      },
+      "hinglish": {
+        "hit@5": 0.407,
+        "mrr@10": 0.244
+      },
+      "all": {
+        "hit@5": 0.654,
+        "mrr@10": 0.454
+      }
+    },
+    "labse+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.754
+      },
+      "hi": {
+        "hit@5": 0.556,
+        "mrr@10": 0.44
+      },
+      "hinglish": {
+        "hit@5": 0.519,
+        "mrr@10": 0.293
+      },
+      "all": {
+        "hit@5": 0.691,
+        "mrr@10": 0.496
+      }
+    },
+    "labse | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.815,
+        "mrr@10": 0.594
+      },
+      "hi": {
+        "hit@5": 0.815,
+        "mrr@10": 0.672
+      },
+      "hinglish": {
+        "hit@5": 0.778,
+        "mrr@10": 0.562
+      },
+      "all": {
+        "hit@5": 0.802,
+        "mrr@10": 0.61
+      }
+    },
+    "labse+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.754
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.769
+      },
+      "hinglish": {
+        "hit@5": 0.889,
+        "mrr@10": 0.728
+      },
+      "all": {
+        "hit@5": 0.938,
+        "mrr@10": 0.75
+      }
+    },
+    "labse | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.815,
+        "mrr@10": 0.594
+      },
+      "hi": {
+        "hit@5": 0.741,
+        "mrr@10": 0.61
+      },
+      "hinglish": {
+        "hit@5": 0.741,
+        "mrr@10": 0.587
+      },
+      "all": {
+        "hit@5": 0.765,
+        "mrr@10": 0.597
+      }
+    },
+    "labse+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.754
+      },
+      "hi": {
+        "hit@5": 0.889,
+        "mrr@10": 0.67
+      },
+      "hinglish": {
+        "hit@5": 0.815,
+        "mrr@10": 0.632
+      },
+      "all": {
+        "hit@5": 0.901,
+        "mrr@10": 0.685
+      }
+    },
+    "labse | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.815,
+        "mrr@10": 0.594
+      },
+      "hi": {
+        "hit@5": 0.852,
+        "mrr@10": 0.668
+      },
+      "hinglish": {
+        "hit@5": 0.815,
+        "mrr@10": 0.633
+      },
+      "all": {
+        "hit@5": 0.827,
+        "mrr@10": 0.632
+      }
+    },
+    "labse+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.754
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.809
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.753
+      },
+      "all": {
+        "hit@5": 1.0,
+        "mrr@10": 0.772
+      }
+    },
+    "labse | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.815,
+        "mrr@10": 0.594
+      },
+      "hi": {
+        "hit@5": 0.815,
+        "mrr@10": 0.624
+      },
+      "hinglish": {
+        "hit@5": 0.815,
+        "mrr@10": 0.611
+      },
+      "all": {
+        "hit@5": 0.815,
+        "mrr@10": 0.61
+      }
+    },
+    "labse+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.754
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.716
+      },
+      "hinglish": {
+        "hit@5": 0.889,
+        "mrr@10": 0.72
+      },
+      "all": {
+        "hit@5": 0.951,
+        "mrr@10": 0.73
+      }
+    },
+    "titan-v2 | as typed": {
+      "en": {
+        "hit@5": 0.963,
+        "mrr@10": 0.862
+      },
+      "hi": {
+        "hit@5": 0.815,
+        "mrr@10": 0.616
+      },
+      "hinglish": {
+        "hit@5": 0.481,
+        "mrr@10": 0.302
+      },
+      "all": {
+        "hit@5": 0.753,
+        "mrr@10": 0.594
+      }
+    },
+    "titan-v2+bm25 | as typed": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.841
+      },
+      "hi": {
+        "hit@5": 0.667,
+        "mrr@10": 0.49
+      },
+      "hinglish": {
+        "hit@5": 0.556,
+        "mrr@10": 0.348
+      },
+      "all": {
+        "hit@5": 0.741,
+        "mrr@10": 0.559
+      }
+    },
+    "titan-v2 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 0.963,
+        "mrr@10": 0.862
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.85
+      },
+      "hinglish": {
+        "hit@5": 0.926,
+        "mrr@10": 0.827
+      },
+      "all": {
+        "hit@5": 0.938,
+        "mrr@10": 0.847
+      }
+    },
+    "titan-v2+bm25 | rewrite gemma-3-27b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.841
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.813
+      },
+      "hinglish": {
+        "hit@5": 0.889,
+        "mrr@10": 0.79
+      },
+      "all": {
+        "hit@5": 0.938,
+        "mrr@10": 0.815
+      }
+    },
+    "titan-v2 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 0.963,
+        "mrr@10": 0.862
+      },
+      "hi": {
+        "hit@5": 0.889,
+        "mrr@10": 0.794
+      },
+      "hinglish": {
+        "hit@5": 0.815,
+        "mrr@10": 0.726
+      },
+      "all": {
+        "hit@5": 0.889,
+        "mrr@10": 0.794
+      }
+    },
+    "titan-v2+bm25 | rewrite gpt-oss-120b": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.841
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.794
+      },
+      "hinglish": {
+        "hit@5": 0.852,
+        "mrr@10": 0.752
+      },
+      "all": {
+        "hit@5": 0.926,
+        "mrr@10": 0.796
+      }
+    },
+    "titan-v2 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 0.963,
+        "mrr@10": 0.862
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.864
+      },
+      "hinglish": {
+        "hit@5": 0.963,
+        "mrr@10": 0.869
+      },
+      "all": {
+        "hit@5": 0.963,
+        "mrr@10": 0.865
+      }
+    },
+    "titan-v2+bm25 | rewrite gemma-3-27b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.841
+      },
+      "hi": {
+        "hit@5": 1.0,
+        "mrr@10": 0.915
+      },
+      "hinglish": {
+        "hit@5": 1.0,
+        "mrr@10": 0.889
+      },
+      "all": {
+        "hit@5": 1.0,
+        "mrr@10": 0.881
+      }
+    },
+    "titan-v2 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 0.963,
+        "mrr@10": 0.862
+      },
+      "hi": {
+        "hit@5": 0.963,
+        "mrr@10": 0.906
+      },
+      "hinglish": {
+        "hit@5": 0.963,
+        "mrr@10": 0.883
+      },
+      "all": {
+        "hit@5": 0.963,
+        "mrr@10": 0.884
+      }
+    },
+    "titan-v2+bm25 | rewrite gpt-oss-120b+glossary": {
+      "en": {
+        "hit@5": 1.0,
+        "mrr@10": 0.841
+      },
+      "hi": {
+        "hit@5": 0.926,
+        "mrr@10": 0.883
+      },
+      "hinglish": {
+        "hit@5": 0.926,
+        "mrr@10": 0.881
+      },
+      "all": {
+        "hit@5": 0.951,
+        "mrr@10": 0.868
+      }
+    }
+  },
+  "misses": {
+    "e5-base+bm25 | as typed": [
+      "dengue-mosquito-breeding (hi)",
+      "dengue-mosquito-breeding (hinglish)",
+      "malaria-bednets (hinglish)",
+      "tb-symptoms (hi)",
+      "tb-symptoms (hinglish)",
+      "tb-treatment-complete (hi)",
+      "ors-preparation (hinglish)",
+      "diarrhoea-zinc (hi)",
+      "diarrhoea-danger-signs (hinglish)",
+      "pneumonia-fast-breathing (hi)",
+      "pneumonia-fast-breathing (hinglish)",
+      "snakebite-first-aid (hinglish)",
+      "snakebite-tourniquet (hi)",
+      "snakebite-tourniquet (hinglish)",
+      "dog-bite-wash (hinglish)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "heatstroke-cooling (hinglish)",
+      "anaemia-symptoms (hinglish)",
+      "pregnancy-danger-signs (hinglish)",
+      "newborn-vaccines-birth (hi)",
+      "newborn-vaccines-birth (hinglish)",
+      "measles-vaccine-age (hinglish)",
+      "hypertension-salt (hinglish)",
+      "diabetes-symptoms (hi)",
+      "diabetes-symptoms (hinglish)"
+    ],
+    "e5-base+bm25 | rewrite gemma-3-27b": [
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)"
+    ],
+    "e5-base+bm25 | rewrite gpt-oss-120b": [
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "diabetes-symptoms (hi)"
+    ],
+    "e5-base+bm25 | rewrite gemma-3-27b+glossary": [],
+    "e5-base+bm25 | rewrite gpt-oss-120b+glossary": [
+      "snakebite-tourniquet (hi)",
+      "diabetes-symptoms (hinglish)"
+    ],
+    "labse+bm25 | as typed": [
+      "dengue-mosquito-breeding (hi)",
+      "chikungunya-joint-pain (hi)",
+      "malaria-bednets (hi)",
+      "malaria-bednets (hinglish)",
+      "tb-symptoms (hi)",
+      "diarrhoea-danger-signs (hinglish)",
+      "snakebite-first-aid (hinglish)",
+      "snakebite-tourniquet (hi)",
+      "snakebite-tourniquet (hinglish)",
+      "dog-bite-wash (hi)",
+      "dog-bite-wash (hinglish)",
+      "rabies-vaccine (hi)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "heatstroke-cooling (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)",
+      "pregnancy-danger-signs (hinglish)",
+      "newborn-vaccines-birth (hinglish)",
+      "measles-vaccine-age (hi)",
+      "measles-vaccine-age (hinglish)",
+      "hypertension-salt (hinglish)",
+      "diabetes-symptoms (hi)",
+      "diabetes-symptoms (hinglish)",
+      "typhoid-spread (hi)"
+    ],
+    "labse+bm25 | rewrite gemma-3-27b": [
+      "diarrhoea-danger-signs (hinglish)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)"
+    ],
+    "labse+bm25 | rewrite gpt-oss-120b": [
+      "diarrhoea-danger-signs (hinglish)",
+      "snakebite-tourniquet (hinglish)",
+      "dog-bite-wash (hinglish)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)",
+      "diabetes-symptoms (hi)"
+    ],
+    "labse+bm25 | rewrite gemma-3-27b+glossary": [],
+    "labse+bm25 | rewrite gpt-oss-120b+glossary": [
+      "dengue-mosquito-breeding (hinglish)",
+      "snakebite-tourniquet (hi)",
+      "snakebite-tourniquet (hinglish)",
+      "diabetes-symptoms (hinglish)"
+    ],
+    "titan-v2+bm25 | as typed": [
+      "malaria-symptoms (hi)",
+      "malaria-bednets (hinglish)",
+      "tb-symptoms (hi)",
+      "tb-symptoms (hinglish)",
+      "diarrhoea-danger-signs (hinglish)",
+      "pneumonia-fast-breathing (hi)",
+      "pneumonia-fast-breathing (hinglish)",
+      "snakebite-first-aid (hi)",
+      "snakebite-tourniquet (hinglish)",
+      "dog-bite-wash (hinglish)",
+      "rabies-vaccine (hi)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "heatstroke-cooling (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)",
+      "newborn-vaccines-birth (hinglish)",
+      "measles-vaccine-age (hinglish)",
+      "hypertension-salt (hi)",
+      "diabetes-symptoms (hi)",
+      "diabetes-symptoms (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gemma-3-27b": [
+      "dengue-mosquito-breeding (hinglish)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gpt-oss-120b": [
+      "dengue-mosquito-breeding (hinglish)",
+      "heatstroke-signs (hi)",
+      "heatstroke-signs (hinglish)",
+      "anaemia-symptoms (hi)",
+      "anaemia-symptoms (hinglish)",
+      "measles-vaccine-age (hinglish)"
+    ],
+    "titan-v2+bm25 | rewrite gemma-3-27b+glossary": [],
+    "titan-v2+bm25 | rewrite gpt-oss-120b+glossary": [
+      "dengue-mosquito-breeding (hi)",
+      "dengue-mosquito-breeding (hinglish)",
+      "snakebite-tourniquet (hi)",
+      "diabetes-symptoms (hinglish)"
+    ]
+  }
+}

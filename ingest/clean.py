@@ -40,7 +40,8 @@ def repeated_edge_lines(pages: list[Page]) -> set[str]:
 
 def clean_text(text: str, drop: set[str] = frozenset()) -> str:
     """Clean one page: drop header/footer and page-number lines, rejoin hyphenated words, tidy spacing."""
-    text = unicodedata.normalize("NFC", text).replace("\r", "")
+    # pypdf returns "�" (the replacement character) for bullets drawn with a symbol font: make them plain bullets.
+    text = unicodedata.normalize("NFC", text).replace("\r", "").replace("�", "•")
     kept = [l for l in text.splitlines() if not _PAGE_NUMBER.match(l) and _normalise(l) not in drop]
     text = "\n".join(kept)
     text = _HYPHEN_BREAK.sub(r"\1\2", text)

@@ -1,0 +1,204 @@
+# Hard test set for the search step (S2), written 2026-11-25 AFTER the first set and BEFORE any run on it.
+#
+# Why a second set: the first 81 questions reached 1.00 hit@5, and the English-rewrite word list and one answer-key
+# fix were made after seeing them, so those scores are optimistic. These 30 questions were not used to tune
+# anything. Rules followed when writing them:
+#   - one language per question (8 English, 8 Hindi, 14 Hinglish), worded like a worried villager would type;
+#   - everyday words that are NOT in the rewrite word list ("pet me marod", "peela", "sust", "chakkar",
+#     "garbhvati", "balgam", "doodh nahi pee raha");
+#   - harder shapes: two symptoms at once, vague descriptions, myths, questions whose answer is one detail.
+# The answer key works like golden_retrieval.yaml: a chunk is correct when it comes from one of `sources`, contains
+# at least one phrase in `any`, and every phrase in `all` (lower case).
+
+topics:
+  - id: child-loose-motion-cramps
+    lang: hinglish
+    question: pet me marod aur baar baar patla potty ho raha hai bacche ko, kya kare
+    sources: [nhm-idcf-2017, who-diarrhoea, asha-integrated-b, asha-integrated-c]
+    any: ["ors", "zinc"]
+    all: ["diarrh"]
+
+  - id: yellow-eyes-urine
+    lang: hinglish
+    question: aankhein aur peshab peela ho gaya hai, kaunsi bimari hai
+    sources: [who-hepatitis-b, asha-integrated-b, asha-integrated-c]
+    any: ["jaundice", "yellow"]
+
+  - id: dizzy-headache-after-sun
+    lang: hi
+    question: धूप में काम करने के बाद चक्कर आ रहे हैं और सिर दर्द है, क्या करें?
+    sources: [ncdc-heat-action-plan-2021, ncdc-heat-chw-manual, ncdc-heat-health-impact, who-heat, asha-integrated-c]
+    any: ["heat exhaustion", "dizziness", "heat stroke"]
+
+  - id: newborn-not-feeding
+    lang: hinglish
+    question: naya bachcha doodh nahi pee raha aur bahut sust pada hai
+    sources: [asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["danger sign", "not able to feed", "unable to feed", "feeding poorly", "stopped feeding", "lethargic",
+          "not feeding"]
+
+  - id: child-chest-indrawing
+    lang: en
+    question: My child keeps coughing, breathes very fast and the chest pulls in with each breath. Is it serious?
+    sources: [who-pneumonia, asha-integrated-b, asha-integrated-c]
+    any: ["chest indrawing", "fast breathing"]
+
+  - id: fever-test-malaria-dengue
+    lang: hinglish
+    question: machhar wale bukhar me kaunsi jaanch karani chahiye
+    sources: [ncvbdc-malaria-2011, ncvbdc-dengue-2023, who-malaria, who-dengue, asha-integrated-c]
+    any: ["rdt", "rapid diagnostic", "blood smear", "microscopy", "ns1", "elisa"]
+
+  - id: dog-scratch-no-blood
+    lang: hi
+    question: कुत्ते ने खरोंच मारी है पर खून नहीं निकला, क्या इंजेक्शन लगवाना ज़रूरी है?
+    sources: [mohfw-rabies-prophylaxis, who-rabies]
+    any: ["category i", "category ii", "category iii", "scratch"]
+
+  - id: snakebite-unsure-marks
+    lang: hinglish
+    question: raat ko pair me kuch chubha, saanp tha ya nahi pata nahi, kaise pehchane
+    sources: [ncdc-snakebite-stg-2017, who-snakebite]
+    any: ["fang mark", "fang", "bite mark"]
+
+  - id: iron-tablets-pregnancy
+    lang: en
+    question: Should a pregnant woman take iron tablets, and why?
+    sources: [nhm-anaemia-mukt-bharat-2026, asha-integrated-a, asha-integrated-b, asha-integrated-c, who-anaemia]
+    any: ["ifa", "iron and folic", "iron folic", "iron-folic"]
+    all: ["pregnan"]
+
+  - id: pregnancy-swelling-headache
+    lang: hinglish
+    question: garbhvati mahila ke pairon me sujan aur tez sir dard hai, koi khatra hai kya
+    sources: [asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["swelling", "eclampsia", "high blood pressure", "severe headache"]
+    all: ["pregnan"]
+
+  - id: vaccines-six-weeks
+    lang: hi
+    question: बच्चे को डेढ़ महीने पर कौन से टीके लगते हैं?
+    sources: [nhm-immunization-handbook-hw, nhm-immunization-faq, asha-integrated-b]
+    any: ["6 weeks", "6 week", "six weeks"]
+    all: ["penta"]
+
+  - id: fever-after-vaccine
+    lang: hinglish
+    question: teeka lagne ke baad bachche ko halka bukhar aa gaya, kya ye normal hai
+    sources: [nhm-immunization-handbook-hw, nhm-immunization-faq, asha-integrated-b]
+    any: ["aefi", "adverse event", "mild fever"]
+
+  - id: tb-home-precautions
+    lang: en
+    question: My father has TB. What precautions should the family take at home so others don't get it?
+    sources: [ntep-differentiated-tb-care-2025, who-tuberculosis, asha-integrated-c]
+    any: ["cough etiquette", "cover", "mask", "ventilat", "infection control"]
+    all: ["tb"]
+
+  - id: hunger-thirst-weight-loss
+    lang: hinglish
+    question: khana khane ke baad bhi baar baar bhookh aur pyaas lagti hai aur wajan ghat raha hai
+    sources: [asha-ncd-module, who-diabetes]
+    any: ["thirst", "hunger", "urination", "weight loss"]
+    all: ["diabet"]
+
+  - id: chest-pain-breathless
+    lang: hi
+    question: सीने में दर्द और सांस फूल रही है, क्या दिल का दौरा हो सकता है?
+    sources: [asha-ncd-module, who-hypertension, asha-integrated-c]
+    any: ["chest pain", "heart attack"]
+
+  - id: krait-night-bite
+    lang: en
+    question: What should we know about snake bites at night when people sleep on the floor?
+    sources: [ncdc-snakebite-stg-2017, who-snakebite]
+    any: ["krait", "sleeping on the floor", "sleep on the floor"]
+
+  - id: dengue-low-platelets
+    lang: hinglish
+    question: dengue me platelets bahut kam ho gaye, ghabrane ki baat hai kya
+    sources: [ncvbdc-dengue-2023, who-dengue]
+    any: ["platelet"]
+
+  - id: heat-elderly-children
+    lang: hi
+    question: गर्मियों में बुजुर्गों और छोटे बच्चों को गर्मी से कैसे बचाएं?
+    sources: [ncdc-heat-action-plan-2021, ncdc-heat-chw-manual, ncdc-heat-health-impact, who-heat, asha-integrated-c]
+    any: ["elderly", "older", "children", "infants"]
+    all: ["heat"]
+
+  - id: high-bp-foods
+    lang: en
+    question: Which foods should a person with high BP avoid?
+    sources: [asha-ncd-module, who-hypertension]
+    any: ["salt", "sodium", "processed food"]
+
+  - id: feeding-during-diarrhoea
+    lang: hinglish
+    question: chhote bachche ko loose motion me khana dena band kar dein kya
+    sources: [nhm-idcf-2017, who-diarrhoea, asha-integrated-b, asha-integrated-c]
+    any: ["continue feeding", "continue breastfeeding", "continued feeding", "feeding during", "continue to feed",
+          "increased fluids"]
+
+  - id: malaria-full-course
+    lang: hi
+    question: मलेरिया की दवा बीच में छोड़ दें तो क्या होगा?
+    sources: [ncvbdc-malaria-2011, who-malaria, asha-integrated-c]
+    any: ["complete", "full course", "relapse", "primaquine", "radical"]
+
+  - id: dengue-vs-chikungunya
+    lang: hinglish
+    question: chikungunya aur dengue me fark kaise pata kare
+    sources: [ncvbdc-chikungunya-2023, ncvbdc-dengue-2023]
+    any: ["differential", "distinguish", "differentiat"]
+
+  - id: typhoid-vaccine
+    lang: en
+    question: Is there a vaccine that prevents typhoid?
+    sources: [who-typhoid]
+    any: ["vaccine"]
+
+  - id: hepb-birth-dose
+    lang: hinglish
+    question: hepatitis B ka pehla injection naye bachche ko kab lagta hai
+    sources: [nhm-immunization-handbook-hw, nhm-immunization-faq, who-hepatitis-b, asha-integrated-b]
+    any: ["birth dose", "within 24 hours"]
+    all: ["hep"]
+
+  - id: blood-in-sputum
+    lang: hi
+    question: खांसी में बलगम के साथ खून आ रहा है, क्या करें?
+    sources: [ntep-differentiated-tb-care-2025, who-tuberculosis, asha-integrated-c]
+    any: ["blood", "haemoptysis", "hemoptysis"]
+    all: ["cough"]
+
+  - id: haemoglobin-normal
+    lang: hinglish
+    question: aanganwadi didi ne khoon ki jaanch karane ko kaha, hemoglobin kitna hona chahiye
+    sources: [nhm-anaemia-mukt-bharat-2026, who-anaemia, asha-integrated-a, asha-integrated-b]
+    any: ["g/dl", "gm/dl", "g/dl)"]
+
+  - id: cholera-safe-water
+    lang: en
+    question: During a cholera outbreak in the village, is hand pump water safe to drink?
+    sources: [who-cholera, who-diarrhoea, nhm-idcf-2017, asha-integrated-b, asha-integrated-c]
+    any: ["safe water", "boil", "chlorin"]
+
+  - id: observe-dog-ten-days
+    lang: hinglish
+    question: kaatne wale kutte ko 10 din tak dekhte rehne ko kyu bolte hain
+    sources: [mohfw-rabies-prophylaxis, who-rabies]
+    any: ["10 days", "ten days", "observ"]
+
+  - id: breastfeeding-first-hour
+    lang: hi
+    question: बच्चे के जन्म के बाद पहले घंटे में माँ का दूध पिलाना क्यों ज़रूरी है?
+    sources: [asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["within one hour", "within an hour", "first hour", "early initiation", "colostrum"]
+
+  - id: measles-danger
+    lang: en
+    question: What are the signs that measles is becoming dangerous for a child?
+    sources: [who-measles, nhm-immunization-handbook-hw, nhm-immunization-faq]
+    any: ["complication", "pneumonia", "encephalitis", "blindness"]
+    all: ["measles"]

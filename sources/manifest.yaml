@@ -173,13 +173,23 @@
   licence: Government of India publication
   topics: [rabies, dog bite]
 
-- id: ncdc-heat-guideline
-  title: National Guideline on Heat-Related Illness (NCDC, NPCCHH)
-  publisher: NCDC / MoHFW (copy hosted by the Global Heat Health Information Network)
-  url: https://heathealth.info/wp-content/uploads/National-Guideline-on-Heat-Related-Illness_FINAL.pdf
+- id: ncdc-heat-action-plan-2021
+  title: National Action Plan on Heat Related Illnesses (2021)
+  publisher: NCDC / MoHFW (NPCCHH)
+  url: https://ncdc.mohfw.gov.in/uploads/pdf/heat12.pdf
   type: pdf
   language: en
   layer: B
+  licence: Government of India publication
+  topics: [heatstroke]
+
+- id: ncdc-heat-chw-manual
+  title: Training Manual for Community Health Workers, Identification and Treatment of Heat-Related Illnesses
+  publisher: NCDC / MoHFW (NPCCHH)
+  url: https://ncdc.mohfw.gov.in/uploads/pdf/heat13.pdf
+  type: pdf
+  language: en
+  layer: A
   licence: Government of India publication
   topics: [heatstroke]
 
