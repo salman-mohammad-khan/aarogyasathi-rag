@@ -310,3 +310,41 @@ Qdrant local mode: https://qdrant.tech/documentation/quickstart/ (Python client,
    feeding advice was lower). S3 will show whether 5 chunks are enough or whether the answer step needs more.
 4. Possible later word-list additions found by the hard set ("dedh mahina = 6 weeks") were NOT added, so the hard
    set stays a fair test.
+
+---
+
+## Server change history (Oracle VM, outside the repo)
+
+Every change made on the server for v2, so it can be undone. Nothing here touches the frozen group copy (port 8000).
+
+| Date (UTC) | Change | Why | Effect | Undo |
+|---|---|---|---|---|
+| 2026-11-25 18:36 | Unloaded `qwen3.5:2b` from Ollama memory (`ollama stop qwen3.5:2b`); model files kept on disk | NovaCare's local triage model, but NovaCare uses Bedrock (key set, no local fallback); Ollama had no chat calls since 17 Nov | Available RAM 2.0 GB -> 5.5 GB. Checked after: both AarogyaSathi copies `/api/health` 200, NovaCare home 200 and its AI assistant answered via Bedrock, model not reloaded | `ollama run qwen3.5:2b ""` (or any call to it) loads it again |
+
+Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
+Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
+would load `qwen3.5:2b` again.
+
+**Planned, not done: LaBSE out of the portfolio copy at the S4 deploy.** Each app copy is its own process with its
+own LaBSE in memory (group ~0.83 GB, portfolio ~0.80 GB), so the group copy is not affected. The live portfolio
+code (v1) still uses LaBSE for search and fact-check today, so it is removed only when v2 (e5) replaces those parts.
+
+---
+
+## Decisions for later steps
+
+**Medicine doses (decided 2026-11-26, for S3): the middle rule.**
+
+| Allowed in answers | Never in answers |
+|---|---|
+| Which kind of medicine is generally used, and which to avoid (paracetamol for dengue fever; no aspirin or ibuprofen) | Any amount: mg, ml, mg/kg, "2 tablets twice a day" |
+| "Complete the course", "do not stop early" (TB, malaria) | Doses for children or in pregnancy; antibiotics, antimalarials, antivenom, insulin, BP and sugar medicines |
+| How to prepare ORS; ORS plus zinc and continued feeding; vaccine schedule by age | Starting, changing or stopping someone's medicine |
+| "Take iron-folic acid as your ANM/ASHA gives it" | Choosing a medicine for this person (diagnosis) |
+
+When a dose is asked: say what is safe to say, then that the amount depends on age and weight and must come from
+the ASHA, PHC doctor or pharmacist (108 for emergencies). Reasons: the bot cannot check weight, age, pregnancy or
+other medicines; errors in rewriting or reading chunks could produce a wrong number; India's Telemedicine Practice
+Guidelines (2020) do not allow AI tools to counsel patients or prescribe directly. Implementation in S3: dose chunks
+are already flagged (`contains_dose`); the answer prompt states the rule; a final check blocks any reply containing a
+dose pattern before it is sent.
