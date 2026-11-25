@@ -149,6 +149,8 @@ def _fmt_lang(obj, lang, key):
 
 def _llm_wrap(context, question, lang, fallback_text, source_names=None):
     reply = generator.grounded_answer(context, question, lang)
+    if reply and generator.leaks_prompt(reply):
+        reply = None
     if reply:
         parts = [reply]
         if source_names:
