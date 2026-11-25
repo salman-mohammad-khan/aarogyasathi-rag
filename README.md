@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml)
 
-**A multilingual, retrieval-augmented health-awareness chatbot with built-in claim verification, for WhatsApp and the web.**
+**A multilingual, retrieval-augmented health-awareness chatbot with built-in claim verification.**
 
 It answers preventive-health questions in English, Hindi and Hinglish, checks forwarded health claims against curated
 myths and live web evidence, and escalates emergencies without involving an LLM. Built for rural and semi-urban India.
@@ -10,6 +10,11 @@ myths and live web evidence, and escalates emergencies without involving an LLM.
 > Awareness system only. It is not a doctor and never diagnoses.
 
 **Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (hosted on an Oracle Cloud free-tier VM; answers come from Gemma 3 27B on Amazon Bedrock).
+
+**Status: v2 rebuild in progress.** The next version answers from about 30 official MoHFW, NCDC and WHO documents
+with hybrid retrieval (embeddings + BM25), page-level citations and a published evaluation. The version described
+below (v1) is live and is kept in the tag `v1-legacy`; the clean-up for v2 removed the surveillance prototype, the
+admin dashboard, the Twilio adapter and the local and hosted Ollama models.
 
 **Origin.** This began as a college minor project (ES-451, SIH-25049). This repository is the standalone version I
 maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
@@ -36,15 +41,13 @@ https://github.com/user-attachments/assets/0479ed30-e8e6-44c6-9146-a2e765b1314c
   conditions. It understands negation ("no fever") and never diagnoses.
 - **Looks up vaccination schedules** (UIP) by age or pregnancy, and individual vaccines.
 - **Has no live outbreak feed**, so it does not show area alerts. An outbreak question gets an honest "no live data"
-  answer that points to the NCDC (IDSP) weekly reports and the state health department. A pincode symptom-spike
-  detector exists only as an admin-side prototype (see Project layout).
-- **Works across languages**: LaBSE cross-lingual embeddings understand English, Hindi, Hinglish and regional
-  languages (Telugu, Tamil and Kannada were tested).
+  answer that points to the NCDC (IDSP) weekly reports and the state health department.
+- **Languages:** English, Hindi and Hinglish. Other Indian languages are not supported.
 
 ## How it works
 
 ```
-User (web / WhatsApp / SMS)
+User (web, or WhatsApp when enabled)
       │
       ▼
 FastAPI backend ──► router
@@ -54,7 +57,7 @@ FastAPI backend ──► router
                       │    plus whole-word entity matching (symptoms, diseases, vaccines, ages)
                       │ 4. if the fast path is not confident: LLM structured-JSON understanding
                       │ 5. LaBSE cross-lingual retrieval over the curated KB
-                      │ 6. RAG generation (LLM tiers with template fallback, grounded in KB context)
+                      │ 6. RAG generation (Gemma 3 27B on Bedrock, template fallback, grounded in KB context)
                       ▼
         KB (diseases / vaccines / FAQ / myths, EN+HI) + sources
 ```
@@ -63,8 +66,8 @@ FastAPI backend ──► router
 similarity plus a lexical-overlap boost.
 
 **Generation.** The LLM receives only the retrieved entry as context, with strict rules: answer only from the
-context, under 70 words, in the user's language, no diagnosis, no prescriptions. If no LLM is reachable, the bot
-answers from deterministic templates.
+context, under 70 words, in the user's language, no diagnosis, no prescriptions. If the model is not reachable, the
+bot answers from deterministic templates.
 
 **Fact-check pipeline.** A claim is matched against 64 curated myths with LaBSE and disease-aware re-ranking. If no
 myth matches, live web evidence is gathered and ranked by source trust (WHO, MoHFW and similar domains first), and an
@@ -115,25 +118,15 @@ minute per model on this account, shared with the answers.
 Entity matching uses whole words, so "tb" does not match inside "outbreak" and "fits" does not match inside
 "benefits". Regression tests for these cases are in `tests/test_safety_routing.py`.
 
-### LLM failover
+### Answer model
 
-Implemented in `app/core/generator.py`:
+Implemented in `app/core/generator.py`: if `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key) is set, Amazon Bedrock
+answers (`BEDROCK_MODEL_ID`, default `google.gemma-3-27b-it` in `ap-south-1`). If a call fails, or no key is set, the
+bot answers from deterministic templates. Bedrock is skipped for 30 s only after 3 failures in a row. `/api/health`
+reports the model and every chat response includes `llm_backend`.
 
-1. If `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key) is set, Amazon Bedrock answers first
-   (`BEDROCK_MODEL_ID`, default `google.gemma-3-27b-it` in `ap-south-1`). If a call fails, the bot answers from
-   deterministic templates by default. Set `BEDROCK_FALLBACK=local` to use local Ollama instead. Bedrock is skipped
-   for 30 s only after 3 failures in a row.
-2. Without a Bedrock key: if `OLLAMA_API_KEY` is set, try Ollama Cloud first (`LLM_CLOUD_MODEL`, default
-   `gpt-oss:20b`).
-3. If the cloud call fails (no credits, bad key, quota, timeout), try local Ollama (`LLM_MODEL`, default
-   `qwen3:1.7b`). A local failure sets a 60 s cooldown for that tier.
-4. If every tier fails, answer from deterministic templates.
-
-`/api/health` reports the active backend and every chat response includes `llm_backend`. The Ollama hosted tier needs
-account credits: without them it answers HTTP 402 and the bot uses the local model.
-
-Why templates and not the local model after a Bedrock failure: in my own testing the 1.7B local model gave wrong
-vaccine and treatment advice, which fixed template answers do not. That test set is not in this repository yet.
+The v1 local and hosted Ollama tiers were removed: in testing the 1.7B local model gave wrong vaccine and treatment
+advice, which fixed template answers do not.
 
 ## Tech stack
 
@@ -142,10 +135,10 @@ vaccine and treatment advice, which fixed template answers do not. That test set
 | API | Python 3.12, FastAPI, Uvicorn, Pydantic |
 | Embeddings and retrieval | LaBSE (Hugging Face Transformers), NumPy |
 | Classic NLP | scikit-learn (TF-IDF + Logistic Regression), fastText language ID |
-| LLMs | Amazon Bedrock: Gemma 3 27B (optional, main); Ollama: Qwen3-1.7B (local), gpt-oss-20b (hosted) |
+| LLM | Amazon Bedrock: Gemma 3 27B, with template fallback |
 | Live evidence | DuckDuckGo search (`ddgs`) with a whitelisted-domain filter |
-| Channels | Web chat UI, Meta WhatsApp Cloud API webhook, Twilio adapter |
-| Data | JSON knowledge base, SQLite for surveillance events |
+| Channels | Web chat UI; Meta WhatsApp Cloud API webhook (optional, off by default) |
+| Data | JSON knowledge base |
 | Ops | systemd on an Oracle Cloud Arm VM, Docker, GitHub Actions |
 
 ## Quick start
@@ -156,19 +149,15 @@ venv\Scripts\activate
 pip install -r requirements.txt
 $env:PYTHONPATH = "$PWD"
 python scripts/setup.py          # downloads LaBSE (~2.2 GB) and lid.176.bin (~125 MB), one time
-ollama serve                     # optional: local model, only needed without a Bedrock key
-ollama pull qwen3:1.7b           # ~1.3 GB, one time
 python -m uvicorn app.main:app --port 8000
 ```
 
-Open http://127.0.0.1:8000 for the chat UI, or http://127.0.0.1:8000/docs for the API. `scripts/start_dev.ps1` starts
-Ollama and the server together. Docker: `docker compose up -d`.
+Open http://127.0.0.1:8000 for the chat UI, or http://127.0.0.1:8000/docs for the API. Docker: `docker compose up -d`.
 
-Memory: LaBSE fp16 ~1 GB, Qwen3-1.7B Q4 ~1.6 GB, Python ~0.5 GB, about 3 GB in total.
+Memory: LaBSE fp16 ~1 GB, Python ~0.5 GB, about 1.5 GB in total.
 
-Optional cloud inference: copy `.env.example` to `.env` and set `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key from the
-AWS console) or `OLLAMA_API_KEY` (from ollama.com, needs credits). `python scripts/test_cloud.py` prints which backend
-answers.
+Model answers: copy `.env.example` to `.env` and set `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key from the AWS
+console). Without it the bot uses its template answers.
 
 ## API
 
@@ -204,7 +193,8 @@ signature check, immediate acknowledgement with background processing, duplicate
 It was demonstrated end to end with a Meta test number and an approved test recipient. Configure it with
 `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET` in your private `.env` (see
 `.env.example`). Never commit these values. `scripts/configure_meta_whatsapp.py` helps with the subscription setup.
-A Twilio adapter is included, but SMS delivery has not been verified.
+The webhook routes exist only when `WHATSAPP_ENABLED=true`; `/webhook/whatsapp/simulate` (a test route) also needs
+the `ADMIN_TOKEN` secret.
 
 ## Deployment
 
@@ -213,9 +203,6 @@ A Twilio adapter is included, but SMS delivery has not been verified.
 - **Deploying an update:** `DEPLOY_HOST=ubuntu@<vm-ip> scripts/deploy.sh` runs the tests, backs up the app folder on
   the VM, uploads the committed files, restarts the service, waits for `/api/health`, sends an emergency-message smoke
   test and rolls back automatically if anything fails. Use `--dry-run` to preview.
-- **Admin dashboard:** `/admin` and the surveillance routes need the `ADMIN_TOKEN` secret from your private `.env`
-  (see `.env.example`). The dashboard asks for it once per browser tab. If `ADMIN_TOKEN` is unset, those routes are
-  disabled. The chat API and `/api/health` stay public.
 - **CI:** `.github/workflows/ci.yml` runs the test suite on every push to `main` and on every pull request.
 - **Docker:** `docker compose up -d`. Generic cloud (Render, Railway): see `docs/DEPLOYMENT.md`.
 
@@ -227,23 +214,21 @@ A Twilio adapter is included, but SMS delivery has not been verified.
   chunking, reranker or hybrid BM25 search yet.
 - The benchmarks above are team-written and partly overlap the training data, so they are component checks, not
   an estimate of real-world accuracy.
-- Answers need a Bedrock key (AWS credits). Without one the bot tries Ollama Cloud, then the smaller local model, which is slower,
-  especially for Hindi, before it falls back to templates. After a failed Bedrock call it goes straight to templates.
+- Answers need a Bedrock key (AWS credits). Without one, or when Bedrock fails, the bot uses its template answers.
 - Awareness only: not a doctor, never diagnoses.
 
 ## Roadmap
 
-- Retrieval: hybrid BM25 + dense search with a reranker, and an evaluation set with recall@k and faithfulness.
-- LLM layer: provider-agnostic failover with logged failures and per-provider cooldowns.
-- Channels: SMS delivery through Twilio.
+- v2 (in progress): official-document library, chunking, Qdrant, hybrid BM25 + dense search with reciprocal rank
+  fusion, page-level citations, labelled answers outside the library, and an evaluation with recall@5, MRR and
+  faithfulness.
 
 ## Project layout
 
 ```
 app/core/          NLP: language, embeddings, intent, entities, retriever, safety, router, generator
 app/factcheck/     myth-vs-fact verifier (verdict scores, source tiers)
-app/channels/      Meta WhatsApp Cloud API webhook, Twilio adapter, simulator endpoint
-app/surveillance/  prototype spike detector (pincode symptom counts vs a 7-day baseline); admin-only, not fed by the page
+app/channels/      Meta WhatsApp Cloud API webhook (optional) and simulator endpoint
 data/kb/           curated knowledge base (diseases, vaccines, faq, myths, messages)
 data/training/     intent training examples and a held-out eval set
 web/               WhatsApp-style demo UI

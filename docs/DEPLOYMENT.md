@@ -5,8 +5,8 @@ The bot is a plain FastAPI app — it can run anywhere Python 3.12 runs.
 ## Option 1: Local Windows (dev/demo) — current setup
 
 ```powershell
-powershell -File scripts\start_dev.ps1        # starts Ollama + server
-# open http://127.0.0.1:8000  (chat)  and  http://127.0.0.1:8000/admin (dashboard; needs ADMIN_TOKEN in .env)
+$env:PYTHONPATH = "$PWD"; python -m uvicorn app.main:app --port 8000
+# open http://127.0.0.1:8000
 ```
 
 ## Option 2: Docker
@@ -21,15 +21,11 @@ docker compose up --build -d
 2. Create the service from the repo. Build command: `pip install -r requirements.txt && python scripts/build_index.py`. Start command: `python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
 3. Set environment variables in the dashboard:
    - `AWS_BEARER_TOKEN_BEDROCK` — Amazon Bedrock API key (main model, Gemma 3 27B in `ap-south-1` by default)
-   - `OLLAMA_API_KEY` — optional Ollama Cloud key, used when no Bedrock key is set
-   - `LLM_CLOUD_MODEL=gpt-oss:20b` — Ollama Cloud model (qwen3:1.7b is not in the cloud catalog)
-4. Health check: `GET /api/health` → `{"llm": {"backend": "bedrock", ...}}` (or `"cloud"` / `"local"` without a Bedrock key)
+4. Health check: `GET /api/health` → `{"llm": {"backend": "bedrock", ...}}` (`null` without a Bedrock key; the bot then uses template answers)
 
 ## Notes
 
 - First startup builds the embedding cache (`data/embeddings/*.npy`) — keep that volume
   mounted/persisted, or every cold start re-embeds the corpus (~2-5 min).
-- RAM: LaBSE fp16 ~1GB + local LLM ~1.6GB (only if Ollama runs on the same host).
-  Cloud-only inference needs just ~1.5GB total.
-- WhatsApp/SMS webhooks are added later via the same `/webhook` pattern
-  (Phase 4) — no architecture change required.
+- RAM: about 1.5 GB in total (LaBSE fp16 ~1 GB + Python); the answer model runs on Amazon Bedrock.
+- The WhatsApp webhook is optional: set `WHATSAPP_ENABLED=true` and the `WHATSAPP_*` values.

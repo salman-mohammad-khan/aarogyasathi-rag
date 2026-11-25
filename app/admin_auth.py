@@ -1,8 +1,8 @@
-"""Token protection for the admin and surveillance endpoints.
+"""Token protection for the WhatsApp test route (/webhook/whatsapp/simulate).
 
-The public chat API stays open. The dashboard data and the routes that change surveillance data need the secret in
+The public chat API stays open. The test route needs the secret in
 the ``ADMIN_TOKEN`` environment variable, sent as ``Authorization: Bearer <token>`` or ``X-Admin-Token: <token>``.
-If ``ADMIN_TOKEN`` is not set, these endpoints are disabled (503) instead of being left open.
+If ``ADMIN_TOKEN`` is not set, the route is disabled (503) instead of being left open.
 """
 import hmac
 

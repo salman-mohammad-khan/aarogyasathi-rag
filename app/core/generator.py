@@ -7,26 +7,17 @@ from urllib.parse import quote
 import httpx
 
 from app.config import (
-    BEDROCK_FALLBACK,
     BEDROCK_MAX_TOKENS,
     BEDROCK_MODEL_ID,
     BEDROCK_REGION,
     BEDROCK_TIMEOUT_S,
-    LLM_CLOUD_MAX_TOKENS,
-    LLM_CLOUD_MODEL,
-    LLM_CLOUD_TIMEOUT_S,
-    LLM_MAX_TOKENS,
-    LLM_MODEL,
     LLM_TEMPERATURE,
-    LLM_TIMEOUT_S,
-    OLLAMA_URL,
 )
 
 log = logging.getLogger(__name__)
 
-OLLAMA_CLOUD_URL = "https://ollama.com/api/chat"
-
-_local_cooldown_until = 0.0
+# Answers come from one hosted model on Amazon Bedrock. If Bedrock is not configured or fails, the callers fall back
+# to the written template answers (the local and Ollama-cloud model tiers of v1 were removed in the v2 clean-up).
 _last_backend = None
 
 # Bedrock is skipped for a short while only after several failures in a row, so one slow call does not
@@ -253,7 +244,6 @@ def ask_followup(context, task, lang):
     reply = generate(
         _with_language(PROBE_SYSTEM_PROMPT, lang),
         f"CONTEXT:\n{context}\n\nTASK: {task}\n\nAnswer in {_lang_name(lang)}. Maximum 25 words.",
-        prefer_cloud=lang not in ("en", "hi"),
     )
 
 _availability = None
@@ -261,9 +251,8 @@ _availability = None
 
 def is_available():
     global _availability
-    if _availability is not None:
-        return _availability
-    _availability = bedrock_configured() or _local_ok() or bool(os.environ.get("OLLAMA_API_KEY"))
+    if _availability is None:
+        _availability = bedrock_configured()
     return _availability
 
 
@@ -272,43 +261,17 @@ def reset_availability():
     _availability = None
 
 
-def _local_ok():
-    if time.time() < _local_cooldown_until:
-        return False
-    try:
-        resp = httpx.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-        return resp.status_code == 200
-    except Exception:
-        return False
-
-
-def _local_failed():
-    global _local_cooldown_until
-    _local_cooldown_until = time.time() + 60
-
-
 def last_backend():
     return _last_backend
 
 
 def backend():
-    if bedrock_configured():
-        return "bedrock"
-    if _local_ok():
-        return "local"
-    if os.environ.get("OLLAMA_API_KEY"):
-        return "cloud"
-    return None
+    return "bedrock" if bedrock_configured() else None
 
 
 def model_name():
-    """Name of the model behind the active backend, for the health endpoint."""
-    active = backend()
-    if active == "bedrock":
-        return BEDROCK_MODEL_ID
-    if active == "cloud":
-        return LLM_CLOUD_MODEL
-    return LLM_MODEL
+    """Name of the answer model, for the health endpoint."""
+    return BEDROCK_MODEL_ID if bedrock_configured() else None
 
 
 _PREAMBLE = re.compile(
@@ -379,78 +342,12 @@ def _bedrock_generate(system_prompt, user_prompt, max_tokens=None, timeout=None,
     return _strip_meta(text) or None
 
 
-def _post(url, payload, headers=None, timeout=LLM_TIMEOUT_S):
-    try:
-        resp = httpx.post(url, json=payload, headers=headers, timeout=timeout)
-        if resp.status_code != 200:
-            return None
-        data = resp.json()
-        content = (data.get("message") or {}).get("content", "").strip()
-        return content or None
-    except Exception:
-        return None
-
-
-def generate(system_prompt, user_prompt, prefer_cloud=False):
+def generate(system_prompt, user_prompt):
+    """One answer from the hosted model, or None (callers then use their template answer)."""
     global _last_backend
-    if not is_available():
-        _last_backend = None
-        return None
-    if bedrock_configured():
-        result = _bedrock_generate(system_prompt, user_prompt)
-        if result:
-            _last_backend = "bedrock"
-            return result
-        if BEDROCK_FALLBACK != "local":
-            _last_backend = None
-            return None
-    options = {
-        "temperature": LLM_TEMPERATURE,
-        "num_predict": LLM_MAX_TOKENS,
-        "num_ctx": 4096,
-    }
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
-    cloud_key = os.environ.get("OLLAMA_API_KEY")
-    if cloud_key:
-        result = _cloud_generate(messages, options)
-        if result:
-            _last_backend = "cloud"
-            return result
-    if _local_ok():
-        payload = {
-            "model": LLM_MODEL,
-            "messages": messages,
-            "stream": False,
-            "think": False,
-            "keep_alive": -1,
-            "options": options,
-        }
-        result = _post(f"{OLLAMA_URL}/api/chat", payload)
-        if result:
-            _last_backend = "local"
-            return result
-        _local_failed()
-    _last_backend = None
-    return None
-
-
-def _cloud_generate(messages, options):
-    payload = {
-        "model": LLM_CLOUD_MODEL,
-        "messages": messages,
-        "stream": False,
-        "think": False,
-        "options": {
-            **options,
-            "num_predict": LLM_CLOUD_MAX_TOKENS,
-            "thinking": {"type": "disabled"},
-        },
-    }
-    headers = {"Authorization": f"Bearer {os.environ['OLLAMA_API_KEY']}"}
-    return _post(OLLAMA_CLOUD_URL, payload, headers, timeout=LLM_CLOUD_TIMEOUT_S)
+    result = _bedrock_generate(system_prompt, user_prompt) if is_available() else None
+    _last_backend = "bedrock" if result else None
+    return result
 
 
 def grounded_answer(context, question, lang="en"):
@@ -459,7 +356,7 @@ def grounded_answer(context, question, lang="en"):
         f"QUESTION: {question}\n\n"
         f"Answer in {_lang_name(lang)}. Keep it under 70 words."
     )
-    reply = generate(_with_language(SYSTEM_PROMPT, lang), user_prompt, prefer_cloud=lang not in ("en", "hi"))
+    reply = generate(_with_language(SYSTEM_PROMPT, lang), user_prompt)
     if wrong_language(reply, lang):
         return None
     return reply
@@ -489,7 +386,7 @@ def evaluate_claim_evidence(claim, evidence_text, lang="en"):
         f"VERIFIED WEB EVIDENCE:\n{evidence_text}\n\n"
         f"Evaluate the claim and return the JSON analysis in {_lang_name(lang)}."
     )
-    reply = generate(FACTCHECK_EVAL_SYSTEM_PROMPT, user_prompt, prefer_cloud=True)
+    reply = generate(FACTCHECK_EVAL_SYSTEM_PROMPT, user_prompt)
     if not reply:
         return None
     try:

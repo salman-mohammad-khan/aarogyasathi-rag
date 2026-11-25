@@ -45,7 +45,7 @@ run `sudo bash scripts/oracle_setup.sh` (the script skips cloning if the folder 
 ## Step 5 — Configure and verify
 
 ```bash
-sudo nano /opt/healthbot/.env        # set AWS_BEARER_TOKEN_BEDROCK (main model); OLLAMA_API_KEY is an optional fallback
+sudo nano /opt/healthbot/.env        # set AWS_BEARER_TOKEN_BEDROCK (the answer model)
 sudo systemctl restart healthbot
 curl http://localhost:8000/api/health   # {"llm": {"backend": "bedrock", ...}} (or "cloud" / "local" without a Bedrock key)
 ```
@@ -87,8 +87,8 @@ sudo systemctl enable --now caddy
 curl -I https://aarogyasathi.example.com/api/health
 ```
 
-5. **Admin dashboard:** set `ADMIN_TOKEN` in `/opt/healthbot/.env` (see `.env.example`) and restart the service.
-   Without it the `/admin` data routes are disabled.
+5. **WhatsApp (optional):** set `WHATSAPP_ENABLED=true`, the `WHATSAPP_*` values and `ADMIN_TOKEN` (for the test
+   route) in `/opt/healthbot/.env` (see `.env.example`) and restart the service.
 6. **Close port 8000** in the security list and the VM firewall once everything uses the HTTPS address. Caddy still
    reaches the app on `127.0.0.1:8000`.
 
@@ -97,7 +97,6 @@ curl -I https://aarogyasathi.example.com/api/health
 ```bash
 journalctl -u healthbot -f            # logs
 sudo systemctl restart healthbot      # restart app
-sudo systemctl restart ollama         # restart LLM
 ```
 
 Stopping when not needed (optional — free tier costs nothing when running):
@@ -112,8 +111,7 @@ oci compute instance action --instance-id <OCID> --action START
 
 - With `AWS_BEARER_TOKEN_BEDROCK` set, Amazon Bedrock (Gemma 3 27B, `ap-south-1`) answers first; if a call fails the bot
   answers from fixed templates
-- Without a Bedrock key it tries Ollama Cloud (gpt-oss:20b, needs `OLLAMA_API_KEY`), then local qwen3:1.7b, then
-  templates — same code, no changes (see "LLM failover" in the README)
+- Without a Bedrock key the bot answers from its fixed templates (see "Answer model" in the README)
 - systemd keeps the bot running 24/7 (WhatsApp-ready, no cold starts)
 - WhatsApp needs an HTTPS webhook URL: Step 6 provides it (Caddy + Let's Encrypt on port 443), and the webhook points
   to the same app

@@ -6,19 +6,12 @@ set -euo pipefail
 APP_DIR="/opt/healthbot"
 REPO_URL="${REPO_URL:-https://github.com/salman-mohammad-khan/aarogyasathi-rag.git}"
 
-echo "[1/8] Updating system..."
+echo "[1/6] Updating system..."
 apt-get update -y
 apt-get upgrade -y
 apt-get install -y python3 python3-venv python3-pip git curl ufw unzip
 
-echo "[2/8] Installing Ollama..."
-curl -fsSL https://ollama.com/install.sh | sh
-systemctl enable --now ollama
-
-echo "[3/8] Pulling local LLM (qwen3:1.7b, ~1.4GB)..."
-ollama pull qwen3:1.7b || echo "model pull failed - cloud API fallback will be used"
-
-echo "[4/8] Cloning project..."
+echo "[2/6] Cloning project..."
 if [ -d "$APP_DIR" ]; then
     cd "$APP_DIR" && git pull || true
 else
@@ -26,17 +19,17 @@ else
 fi
 cd "$APP_DIR"
 
-echo "[5/8] Setting up Python venv..."
+echo "[3/6] Setting up Python venv..."
 python3 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
 
-echo "[6/8] Creating .env (edit values AFTER this script finishes!)..."
+echo "[4/6] Creating .env (edit values AFTER this script finishes!)..."
 if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-echo "[7/8] Pre-building the embedding index (downloads LaBSE ~2.2GB, ~2-4 min)..."
+echo "[5/6] Pre-building the embedding index (downloads LaBSE ~2.2GB, ~2-4 min)..."
 mkdir -p data/models data/embeddings
 if [ ! -f data/models/lid.176.bin ]; then
     echo "  downloading fastText language model..."
@@ -45,7 +38,7 @@ fi
 PYTHONPATH=/opt/healthbot ./venv/bin/python scripts/build_index.py
 chown -R ubuntu:ubuntu data || true
 
-echo "[8/8] Installing systemd service..."
+echo "[6/6] Installing systemd service..."
 cp scripts/healthbot.service /etc/systemd/system/healthbot.service
 systemctl daemon-reload
 systemctl enable --now healthbot
@@ -54,10 +47,10 @@ echo "Opening firewall port 8000 (also add an Ingress rule in Oracle console!)."
 ufw allow 8000/tcp || true
 
 echo ""
-echo "DONE. Chat: http://<VM_PUBLIC_IP>:8000 | Dashboard: /admin (needs ADMIN_TOKEN) | Health: /api/health"
+echo "DONE. Chat: http://<VM_PUBLIC_IP>:8000 | Health: /api/health"
 echo "For a public HTTPS link with your own domain, follow Step 6 in docs/ORACLE_DEPLOY.md."
 echo "NEXT STEPS:"
-echo "  1. Edit /opt/healthbot/.env and add AWS_BEARER_TOKEN_BEDROCK (main model); OLLAMA_API_KEY is an optional fallback"
+echo "  1. Edit /opt/healthbot/.env and add AWS_BEARER_TOKEN_BEDROCK (the answer model)"
 echo "  2. systemctl restart healthbot"
 echo "  3. Oracle console -> Networking -> VCN -> Security List -> add Ingress TCP 8000 (0.0.0.0/0)"
 echo "  4. Check logs: journalctl -u healthbot -f"

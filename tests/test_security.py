@@ -1,4 +1,4 @@
-"""Small security fixes: CORS, rate limit, pincode validation, generic errors, safe admin page."""
+"""Small security fixes: CORS, rate limit, no pincode storage, message length, generic errors."""
 import sys
 from pathlib import Path
 
@@ -54,14 +54,10 @@ def test_chat_route_is_rate_limited_and_limit_raises_429(monkeypatch):
     ratelimit.reset()
 
 
-@pytest.mark.parametrize("bad", ["<img src=x onerror=alert(1)>", "12345", "1100011", "abc123", "110 001", ""])
-def test_bad_pincode_is_dropped_not_stored(bad):
-    assert ChatRequest(message="hi", pincode=bad).pincode is None
-
-
-def test_good_pincode_is_kept():
-    assert ChatRequest(message="hi", pincode="110001").pincode == "110001"
-    assert ChatRequest(message="hi").pincode is None
+def test_pincode_is_no_longer_accepted_or_stored():
+    # v1 stored pincodes for the surveillance prototype; v2 removed it, so a sent pincode is simply ignored.
+    req = ChatRequest(message="hi", pincode="<img src=x onerror=alert(1)>")
+    assert not hasattr(req, "pincode")
 
 
 def test_message_length_is_limited():
@@ -74,9 +70,3 @@ def test_server_errors_do_not_leak_details():
     body = resp.body.decode()
     assert resp.status_code == 500
     assert "secret" not in body and ".env" not in body and "token" not in body
-
-
-def test_admin_page_builds_cells_with_text_not_html():
-    js = (ROOT / "web" / "admin.js").read_text(encoding="utf-8")
-    assert "textContent" in js
-    assert "tr.innerHTML" not in js

@@ -1,7 +1,6 @@
 [Unit]
 Description=AarogyaSathi Health Chatbot (FastAPI)
-After=network.target ollama.service
-Wants=ollama.service
+After=network.target
 
 [Service]
 WorkingDirectory=/opt/healthbot
