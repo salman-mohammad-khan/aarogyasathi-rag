@@ -162,13 +162,13 @@ def understand_message(text, lang, extra_ctx=""):
 
 def analyze_symptoms(context, lang, question):
     reply = generate(
-        SYMPTOM_ANALYSIS_SYSTEM_PROMPT,
+        _with_language(SYMPTOM_ANALYSIS_SYSTEM_PROMPT, lang),
         f"CONTEXT:\n{context}\n\nUSER: {question}\n\nWrite the analysis in {_lang_name(lang)}.",
     )
     if not reply:
         return None
     cleaned = re.sub(r"\bUNSURE\b", "", reply, flags=re.IGNORECASE).strip()
-    if leaks_prompt(cleaned):
+    if leaks_prompt(cleaned) or wrong_language(cleaned, lang):
         return None
     return cleaned or None
 
@@ -202,13 +202,13 @@ def looks_unsure(text):
 
 def general_answer(question, lang, extra_ctx=""):
     reply = generate(
-        GENERAL_SYSTEM_PROMPT,
+        _with_language(GENERAL_SYSTEM_PROMPT, lang),
         f"{extra_ctx}QUESTION: {question}\n\nAnswer in {_lang_name(lang)}. If unsure, reply UNSURE.",
     )
     if not reply:
         return None
     cleaned = re.sub(r"\bUNSURE\b", "", reply, flags=re.IGNORECASE).strip()
-    if leaks_prompt(cleaned):
+    if leaks_prompt(cleaned) or wrong_language(cleaned, lang):
         return None
     if not cleaned:
         return None
@@ -232,9 +232,26 @@ def _lang_name(lang):
     }.get(lang, "the same language as the question")
 
 
+_DEVANAGARI = re.compile("[ऀ-ॿ]")
+
+
+def _with_language(system_prompt, lang):
+    """Repeat the reply language in the system instructions. The prompts' Hindi rules made Gemma 3 27B answer about 2
+    in 10 English questions in Hindi when the language was only named in the user turn (0 in 10 with this line)."""
+    name = _lang_name(lang)
+    return f"{system_prompt}\nReply language for this message: {name}. Write the whole answer in {name}."
+
+
+def wrong_language(text, lang):
+    """True when an English answer was written mostly in Devanagari."""
+    if lang != "en" or not text:
+        return False
+    return len(_DEVANAGARI.findall(text)) > 5
+
+
 def ask_followup(context, task, lang):
-    return generate(
-        PROBE_SYSTEM_PROMPT,
+    reply = generate(
+        _with_language(PROBE_SYSTEM_PROMPT, lang),
         f"CONTEXT:\n{context}\n\nTASK: {task}\n\nAnswer in {_lang_name(lang)}. Maximum 25 words.",
         prefer_cloud=lang not in ("en", "hi"),
     )
@@ -442,7 +459,10 @@ def grounded_answer(context, question, lang="en"):
         f"QUESTION: {question}\n\n"
         f"Answer in {_lang_name(lang)}. Keep it under 70 words."
     )
-    return generate(SYSTEM_PROMPT, user_prompt, prefer_cloud=lang not in ("en", "hi"))
+    reply = generate(_with_language(SYSTEM_PROMPT, lang), user_prompt, prefer_cloud=lang not in ("en", "hi"))
+    if wrong_language(reply, lang):
+        return None
+    return reply
 
 
 FACTCHECK_EVAL_SYSTEM_PROMPT = (
