@@ -1,20 +1,15 @@
-"""The admin dashboard data and the surveillance write routes need ADMIN_TOKEN; the public chat API stays open."""
+"""The WhatsApp test route needs ADMIN_TOKEN; the public chat API stays open; the removed v1 routes are gone."""
 import pytest
 from fastapi import HTTPException
 
 from app import config
 from app.admin_auth import require_admin
+from app.channels.whatsapp import whatsapp_router
 from app.main import app
 
-PROTECTED = [
-    ("/api/stats", "GET"),
-    ("/api/surveillance/alerts", "GET"),
-    ("/api/surveillance/run", "POST"),
-    ("/api/surveillance/seed", "POST"),
-    ("/api/surveillance/clear", "POST"),
-    ("/webhook/whatsapp/simulate", "POST"),
-]
-PUBLIC = [("/api/chat", "POST"), ("/api/health", "GET"), ("/", "GET"), ("/admin", "GET")]
+PUBLIC = [("/api/chat", "POST"), ("/api/health", "GET"), ("/", "GET")]
+REMOVED = ["/admin", "/api/stats", "/api/intents", "/api/surveillance/alerts", "/api/surveillance/run",
+           "/api/surveillance/seed", "/api/surveillance/clear", "/webhook/twilio", "/webhook/whatsapp/twilio"]
 
 
 def _walk(routes, prefix=""):
@@ -28,8 +23,8 @@ def _walk(routes, prefix=""):
             yield prefix + route.path, route
 
 
-def _route(path, method):
-    for full, route in _walk(app.routes):
+def _route(routes, path, method):
+    for full, route in _walk(routes):
         if full == path and method in getattr(route, "methods", set()):
             return route
     raise AssertionError(f"route {method} {path} not found")
@@ -39,14 +34,23 @@ def _guards(route):
     return [dep.call for dep in route.dependant.dependencies]
 
 
-@pytest.mark.parametrize("path,method", PROTECTED)
-def test_surveillance_and_stats_routes_require_the_admin_check(path, method):
-    assert require_admin in _guards(_route(path, method))
+def test_whatsapp_simulate_route_requires_the_admin_check():
+    assert require_admin in _guards(_route(whatsapp_router.routes, "/simulate", "POST"))
 
 
 @pytest.mark.parametrize("path,method", PUBLIC)
 def test_public_routes_have_no_admin_check(path, method):
-    assert require_admin not in _guards(_route(path, method))
+    assert require_admin not in _guards(_route(app.routes, path, method))
+
+
+@pytest.mark.parametrize("path", REMOVED)
+def test_removed_v1_routes_are_gone(path):
+    assert all(full != path for full, _ in _walk(app.routes))
+
+
+def test_whatsapp_webhook_is_off_by_default():
+    assert config.WHATSAPP_ENABLED is False
+    assert all(not full.startswith("/webhook/whatsapp") for full, _ in _walk(app.routes))
 
 
 def test_disabled_when_no_token_is_configured(monkeypatch):

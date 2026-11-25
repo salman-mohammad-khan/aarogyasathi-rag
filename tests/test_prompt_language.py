@@ -57,7 +57,7 @@ def test_guard_still_allows_language_and_health_questions():
 def test_reply_language_is_repeated_in_the_system_instructions(monkeypatch):
     seen = {}
 
-    def fake_generate(system_prompt, user_prompt, prefer_cloud=False):
+    def fake_generate(system_prompt, user_prompt):
         seen["system"] = system_prompt
         return "Dengue symptoms can include high fever."
 
@@ -69,7 +69,7 @@ def test_reply_language_is_repeated_in_the_system_instructions(monkeypatch):
 
 
 def test_an_english_question_never_gets_a_hindi_answer(monkeypatch):
-    monkeypatch.setattr(generator, "generate", lambda s, u, prefer_cloud=False: "डेंगू के लक्षण: तेज़ बुखार, सिर दर्द")
+    monkeypatch.setattr(generator, "generate", lambda s, u: "डेंगू के लक्षण: तेज़ बुखार, सिर दर्द")
     assert generator.grounded_answer("ctx", "What are the symptoms of dengue?", "en") is None
     assert generator.grounded_answer("ctx", "dengue ke lakshan", "hi") == "डेंगू के लक्षण: तेज़ बुखार, सिर दर्द"
 

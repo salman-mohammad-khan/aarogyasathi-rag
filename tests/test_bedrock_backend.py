@@ -19,14 +19,10 @@ class FakeResp:
 @pytest.fixture(autouse=True)
 def clean_state(monkeypatch):
     monkeypatch.setenv("AWS_BEARER_TOKEN_BEDROCK", KEY)
-    monkeypatch.delenv("OLLAMA_API_KEY", raising=False)
     monkeypatch.setattr(generator, "_availability", None)
     monkeypatch.setattr(generator, "_bedrock_failures", 0)
     monkeypatch.setattr(generator, "_bedrock_cooldown_until", 0.0)
     monkeypatch.setattr(generator, "_last_backend", None)
-    monkeypatch.setattr(generator, "BEDROCK_FALLBACK", "templates")
-    # Ollama must never be reached unless a test opts in.
-    monkeypatch.setattr(generator, "_local_ok", lambda: False)
 
 
 def fake_post(monkeypatch, responses):
@@ -80,9 +76,8 @@ def test_reply_blocks_without_text_are_joined_safely(monkeypatch):
     assert generator.generate("s", "u") == "Answer."
 
 
-def test_http_error_returns_none_and_never_calls_ollama(monkeypatch):
+def test_http_error_returns_none(monkeypatch):
     fake_post(monkeypatch, [FakeResp(status=403)])
-    monkeypatch.setattr(generator, "_post", lambda *a, **k: pytest.fail("local Ollama was called"))
     assert generator.generate("s", "u") is None
     assert generator.last_backend() is None
 
@@ -113,13 +108,10 @@ def test_one_slow_call_does_not_pause_bedrock(monkeypatch):
     assert len(calls) == 6
 
 
-def test_fallback_local_uses_ollama_after_a_bedrock_failure(monkeypatch):
-    monkeypatch.setattr(generator, "BEDROCK_FALLBACK", "local")
-    monkeypatch.setattr(generator, "_local_ok", lambda: True)
-    monkeypatch.setattr(generator, "_post", lambda *a, **k: "local answer")
+def test_a_failed_bedrock_call_returns_none_so_the_template_answer_is_used(monkeypatch):
     fake_post(monkeypatch, [FakeResp(500)])
-    assert generator.generate("s", "u") == "local answer"
-    assert generator.last_backend() == "local"
+    assert generator.generate("s", "u") is None
+    assert generator.last_backend() is None
 
 
 def test_without_a_key_bedrock_is_never_called(monkeypatch):

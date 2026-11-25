@@ -1,21 +1,18 @@
 import logging
-import re
 import time
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app import config
-from app.admin_auth import require_admin
 from app.ratelimit import rate_limit_chat
 from app.core import embeddings, generator, intent, kb, language, retriever
 from app.core import session as session_store
 from app.core.router import process_message
 from app.factcheck import verifier
-from app.surveillance import syndromic
 from app.channels.whatsapp import whatsapp_router
 
 app = FastAPI(title="AarogyaSathi - AI-Driven Public Health Chatbot", version="0.1.0")
@@ -24,29 +21,18 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=config.CORS_ORIGINS,
     allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type", "Authorization", "X-Admin-Token"],
+    allow_headers=["Content-Type"],
 )
 
 app.mount("/static", StaticFiles(directory=str(config.WEB_DIR)), name="static")
-app.include_router(whatsapp_router, prefix="/webhook/whatsapp", tags=["whatsapp"])
-from app.channels.whatsapp import twilio_webhook_inbound
-app.add_api_route("/webhook/twilio", twilio_webhook_inbound, methods=["POST", "GET"])
+# WhatsApp (Meta Cloud API) is optional and off unless WHATSAPP_ENABLED=true.
+if config.WHATSAPP_ENABLED:
+    app.include_router(whatsapp_router, prefix="/webhook/whatsapp", tags=["whatsapp"])
 
 
 class ChatRequest(BaseModel):
     message: str = Field(max_length=2000)
-    pincode: str | None = None
     session_id: str | None = Field(default=None, max_length=100)
-
-    @field_validator("pincode")
-    @classmethod
-    def _pincode_is_six_digits(cls, value):
-        # An Indian pincode is six digits. Anything else is dropped (the chat still works) so no free text can reach
-        # the surveillance tables or the admin page.
-        if value is None:
-            return None
-        value = value.strip()
-        return value if re.fullmatch(r"\d{6}", value) else None
 
 
 class ChatResponse(BaseModel):
@@ -75,38 +61,6 @@ def startup():
     retriever._ensure_index()
     verifier._ensure_index()
     embeddings.get_model()
-    _warmup_llm()
-
-
-def _warmup_llm():
-    import threading
-    import time
-
-    # No local model to warm up when answers come from Bedrock only.
-    if generator.bedrock_configured() and config.BEDROCK_FALLBACK != "local":
-        return
-
-    def _run():
-        import httpx
-        for _ in range(12):
-            try:
-                r = httpx.post(
-                    f"{config.OLLAMA_URL}/api/generate",
-                    json={
-                        "model": config.LLM_MODEL,
-                        "prompt": "hi",
-                        "stream": False,
-                        "options": {"num_predict": 3, "num_ctx": 4096},
-                    },
-                    timeout=30,
-                )
-                if r.status_code == 200:
-                    return
-            except Exception:
-                pass
-            time.sleep(5)
-
-    threading.Thread(target=_run, daemon=True).start()
 
 
 def _update_summary(session):
@@ -146,7 +100,7 @@ def health():
 def chat(req: ChatRequest):
     start = time.time()
     session = session_store.get_session(req.session_id)
-    result = process_message(req.message, req.pincode, session)
+    result = process_message(req.message, None, session)
     history = session.get("history") or []
     history.append({"role": "user", "text": req.message[:200]})
     history.append({"role": "bot", "text": result["text"][:300]})
@@ -171,12 +125,6 @@ def chat(req: ChatRequest):
             "tags": factcheck.get("tags", []),
             "sources": [s["name"] for s in factcheck.get("sources", [])],
         }
-    if req.pincode:
-        symptoms = meta.get("symptoms")
-        if symptoms:
-            syndromic.record_symptom_event(req.pincode, symptoms, meta.get("lang", "en"))
-            syndromic.run_detection(req.pincode)
-    syndromic.record_message(req.pincode, meta.get("intent", "unknown"), meta.get("lang", "en"), verdict)
     return ChatResponse(
         reply=result["text"],
         intent=meta.get("intent", "unknown"),
@@ -187,42 +135,6 @@ def chat(req: ChatRequest):
         flow=meta.get("flow"),
         factcheck=factcheck,
     )
-
-
-@app.get("/api/intents")
-def intents_debug():
-    return {"available": True}
-
-
-@app.get("/api/stats", dependencies=[Depends(require_admin)])
-def stats():
-    return syndromic.stats()
-
-
-@app.get("/api/surveillance/alerts", dependencies=[Depends(require_admin)])
-def surveillance_alerts():
-    return {"spike_alerts": syndromic.active_alerts()}
-
-
-@app.post("/api/surveillance/run", dependencies=[Depends(require_admin)])
-def surveillance_run():
-    return {"new_alerts": syndromic.run_detection()}
-
-
-@app.post("/api/surveillance/seed", dependencies=[Depends(require_admin)])
-def surveillance_seed():
-    return {"new_alerts": syndromic.seed_demo()}
-
-
-@app.post("/api/surveillance/clear", dependencies=[Depends(require_admin)])
-def surveillance_clear():
-    syndromic.clear_all()
-    return {"status": "cleared"}
-
-
-@app.get("/admin")
-def admin_page():
-    return FileResponse(str(config.WEB_DIR / "admin.html"))
 
 
 @app.exception_handler(Exception)
