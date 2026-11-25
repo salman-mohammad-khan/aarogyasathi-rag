@@ -52,3 +52,30 @@ def test_guard_still_allows_language_and_health_questions():
     assert not is_injection("reply only in english")
     assert not is_injection("dengue ke lakshan english mein batao")
     assert not is_injection("what are the rules for taking the polio vaccine")
+
+
+def test_reply_language_is_repeated_in_the_system_instructions(monkeypatch):
+    seen = {}
+
+    def fake_generate(system_prompt, user_prompt, prefer_cloud=False):
+        seen["system"] = system_prompt
+        return "Dengue symptoms can include high fever."
+
+    monkeypatch.setattr(generator, "generate", fake_generate)
+    generator.grounded_answer("ctx", "What are the symptoms of dengue?", "en")
+    assert seen["system"].rstrip().endswith("Write the whole answer in English.")
+    generator.grounded_answer("ctx", "dengue ke lakshan", "hi")
+    assert "Write the whole answer in Hindi (Devanagari script)." in seen["system"]
+
+
+def test_an_english_question_never_gets_a_hindi_answer(monkeypatch):
+    monkeypatch.setattr(generator, "generate", lambda s, u, prefer_cloud=False: "डेंगू के लक्षण: तेज़ बुखार, सिर दर्द")
+    assert generator.grounded_answer("ctx", "What are the symptoms of dengue?", "en") is None
+    assert generator.grounded_answer("ctx", "dengue ke lakshan", "hi") == "डेंगू के लक्षण: तेज़ बुखार, सिर दर्द"
+
+
+def test_wrong_language_only_flags_english_answers_written_in_devanagari():
+    assert generator.wrong_language("डेंगू के लक्षण ये हो सकते हैं", "en")
+    assert not generator.wrong_language("Dengue (डेंगू) symptoms: high fever", "en")
+    assert not generator.wrong_language("डेंगू के लक्षण ये हो सकते हैं", "hi")
+    assert not generator.wrong_language(None, "en")
