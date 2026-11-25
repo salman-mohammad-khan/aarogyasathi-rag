@@ -1,0 +1,384 @@
+# AarogyaSathi v2 document library.
+# One entry per source. The files themselves are NOT in git (licences differ); `python -m ingest.fetch` downloads
+# them into data/raw/. Every answer cites the entry's title, publisher, URL and page.
+#
+# layer A = community level, plain language (ASHA material, community manuals), main source for rural users
+# layer B = national programme guidelines (facts; contain medicine doses, which public answers never quote)
+# layer C = WHO fact sheets (short, plain English; licence CC BY-NC-SA 3.0 IGO)
+#
+# Fields: id, title, publisher, url, type (pdf|html), language (en|hi), layer, licence, topics
+# exclude: reason the source is kept on the list but not used (it is downloaded and reported, not chunked)
+
+- id: asha-integrated-a
+  title: Integrated ASHA Training Module, Part A
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2026-10/Integrated%20ASHA%20Module%20Part%20A.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [community health, maternal health, newborn care, child health]
+
+- id: asha-integrated-b
+  title: Integrated ASHA Training Module, Part B
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2026-10/Integrated%20ASHA%20Module%20Part%20B.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [communicable diseases, non-communicable diseases, nutrition]
+
+- id: asha-integrated-c
+  title: Integrated ASHA Training Module, Part C
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2026-10/Integrated%20ASHA%20Module%20Part%20C_0.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [community health, health services]
+
+- id: asha-induction-hi
+  title: Induction Training Module for ASHA (Hindi)
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2021-06/Induction%20Training%20Module%20for%20ASHA%20Hindi.pdf
+  type: pdf
+  language: hi
+  layer: A
+  licence: Government of India publication
+  topics: [community health, tuberculosis, malaria, maternal health, newborn care]
+  exclude: "legacy non-Unicode Hindi font (Kruti Dev); extracted text is unreadable"
+
+- id: asha-reading-hi
+  title: Reading Material for ASHA (Hindi)
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2021-05/Reading%20Material%20ASHA%20Hindi.pdf
+  type: pdf
+  language: hi
+  layer: A
+  licence: Government of India publication
+  topics: [community health]
+  exclude: "legacy non-Unicode Hindi font; extracted text is unreadable"
+
+- id: asha-module6-hi
+  title: Skills that Save Lives, ASHA Module 6 (Hindi)
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2021-05/Skills%20that%20Save%20Lives%20ASHA%20Module%206%20Hindi.pdf
+  type: pdf
+  language: hi
+  layer: A
+  licence: Government of India publication
+  topics: [pregnancy, delivery, newborn care]
+  exclude: "scanned PDF without a text layer (would need OCR)"
+
+- id: asha-module7-hi
+  title: Skills that Save Lives, ASHA Module 7 (Hindi)
+  publisher: NHSRC / MoHFW
+  url: https://www.nhsrcindia.org/sites/default/files/2021-05/Skills%20That%20Save%20Lives%20ASHA%20Module%207%20Hindi.pdf
+  type: pdf
+  language: hi
+  layer: A
+  licence: Government of India publication
+  topics: [newborn care, child illness, nutrition]
+  exclude: "legacy non-Unicode Hindi font (Kruti Dev); extracted text is unreadable"
+
+- id: asha-ncd-module
+  title: Module for ASHA on Non-Communicable Diseases
+  publisher: MoHFW
+  url: https://aam.mohfw.gov.in/download/document/263f3ca26df87dc44b7687c1b9cf0c15.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [hypertension, diabetes, cancer]
+
+- id: ncdc-heat-health-impact
+  title: Health Impact of Heat, Heat-Related Illnesses
+  publisher: NCDC / MoHFW
+  url: https://ncdc.mohfw.gov.in/uploads/pdf/6.%20Health%20Impact%20of%20Heat_Heat%20Related%20Illnesses.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [heatstroke]
+
+- id: nhm-immunization-faq
+  title: Frequently Asked Questions on Immunization for Health Workers
+  publisher: NHM / MoHFW
+  url: https://nhm.gov.in/New_Updates_2018/NHM_Components/Immunization/Guildelines_for_immunization/FAQ_on_Immunization_for_Health_Workers-English.pdf
+  type: pdf
+  language: en
+  layer: A
+  licence: Government of India publication
+  topics: [vaccines]
+
+- id: ncvbdc-dengue-2023
+  title: National Guidelines for Clinical Management of Dengue Fever 2023
+  publisher: NCVBDC / MoHFW
+  url: https://ncvbdc.mohfw.gov.in/Doc/National%20Guidelines%20for%20Clinical%20Management%20of%20Dengue%20Fever%202023.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [dengue]
+
+- id: ncvbdc-chikungunya-2023
+  title: National Guidelines for Clinical Management of Chikungunya Fever 2023
+  publisher: NCVBDC / MoHFW
+  url: https://ncvbdc.mohfw.gov.in/Doc/National-Guidelines-for-Clinical-Management-of-Chikungunya-Fever-2023.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [chikungunya]
+
+- id: ncvbdc-malaria-2011
+  title: Guidelines for Diagnosis and Treatment of Malaria in India (2011)
+  publisher: NCVBDC / NIMR
+  url: https://ncvbdc.mohfw.gov.in/WriteReadData/l892s/Guidelines%20for%20Diagnosis2011.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [malaria]
+
+- id: nhm-immunization-handbook-hw
+  title: Immunization Handbook for Health Workers (2018)
+  publisher: NHM / MoHFW
+  url: https://nhm.gov.in/New_Updates_2018/NHM_Components/Immunization/Guildelines_for_immunization/Immunization_Handbook_for_Health_Workers-English.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [vaccines]
+
+- id: ncdc-snakebite-stg-2017
+  title: Standard Treatment Guidelines, Management of Snake Bite (2017)
+  publisher: MoHFW / NCDC
+  url: https://ncdc.mohfw.gov.in/uploads/pdf/Standard-Treatment-Guidelines-for-Management-of-Snake-Bite.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [snakebite]
+
+- id: mohfw-rabies-prophylaxis
+  title: National Guidelines on Rabies Prophylaxis
+  publisher: NRCP / MoHFW
+  url: https://clinicalestablishments.mohfw.gov.in/sites/default/files/standard-treatment-guidelines/238.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [rabies, dog bite]
+
+- id: ncdc-heat-guideline
+  title: National Guideline on Heat-Related Illness (NCDC, NPCCHH)
+  publisher: NCDC / MoHFW (copy hosted by the Global Heat Health Information Network)
+  url: https://heathealth.info/wp-content/uploads/National-Guideline-on-Heat-Related-Illness_FINAL.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [heatstroke]
+
+- id: nhm-anaemia-mukt-bharat-2026
+  title: Anaemia Mukt Bharat Abhiyaan Operational Guidelines (June 2026)
+  publisher: MoHFW Nutrition Division
+  url: https://www.nhm.gov.in/New-Update-2025-26/Nutrition/AMB-guidelines/AMB-Abhiyaan-Guidelines.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [anaemia, deworming, nutrition]
+
+- id: ntep-differentiated-tb-care-2025
+  title: National Guidance on Differentiated TB Care (March 2025)
+  publisher: NTEP / MoHFW
+  url: https://tbcindia.mohfw.gov.in/wp-content/uploads/2025/07/National-Guidance-on-Differential-TB-Care_Final_March-2025-3.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [tuberculosis]
+
+- id: nhm-idcf-2017
+  title: Intensified Diarrhoea Control Fortnight Guidelines (2017)
+  publisher: NHM / MoHFW
+  url: https://nhm.gov.in/images/pdf/IDCF-2017/IDCF_guidelines_2017.pdf
+  type: pdf
+  language: en
+  layer: B
+  licence: Government of India publication
+  topics: [diarrhoea, ORS, zinc]
+
+- id: who-dengue
+  title: Dengue and severe dengue (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [dengue]
+
+- id: who-malaria
+  title: Malaria (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/malaria
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [malaria]
+
+- id: who-tuberculosis
+  title: Tuberculosis (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/tuberculosis
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [tuberculosis]
+
+- id: who-typhoid
+  title: Typhoid (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/typhoid
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [typhoid]
+
+- id: who-cholera
+  title: Cholera (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/cholera
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [cholera]
+
+- id: who-diarrhoea
+  title: Diarrhoeal disease (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/diarrhoeal-disease
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [diarrhoea, ORS]
+
+- id: who-measles
+  title: Measles (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/measles
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [measles]
+
+- id: who-rabies
+  title: Rabies (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/rabies
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [rabies]
+
+- id: who-hepatitis-b
+  title: Hepatitis B (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/hepatitis-b
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [hepatitis]
+
+- id: who-pneumonia
+  title: Pneumonia in children (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/pneumonia
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [pneumonia]
+
+- id: who-influenza
+  title: Influenza (seasonal) (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/influenza-(seasonal)
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [influenza]
+
+- id: who-covid19
+  title: Coronavirus disease (COVID-19) (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/coronavirus-disease-(covid-19)
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [covid-19]
+
+- id: who-snakebite
+  title: Snakebite envenoming (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/snakebite-envenoming
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [snakebite]
+
+- id: who-anaemia
+  title: Anaemia (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/anaemia
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [anaemia]
+
+- id: who-diabetes
+  title: Diabetes (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/diabetes
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [diabetes]
+
+- id: who-hypertension
+  title: Hypertension (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/hypertension
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [hypertension]
+
+- id: who-heat
+  title: Heat and health (WHO fact sheet)
+  publisher: WHO
+  url: https://www.who.int/news-room/fact-sheets/detail/climate-change-heat-and-health
+  type: html
+  language: en
+  layer: C
+  licence: CC BY-NC-SA 3.0 IGO
+  topics: [heatstroke]
