@@ -97,7 +97,8 @@ Retrieved 2026-11-25. Layer A = community level, B = national guideline, C = WHO
 | nhm-immunization-handbook-hw | [Immunization Handbook for Health Workers (2018)](https://nhm.gov.in/New_Updates_2018/NHM_Components/Immunization/Guildelines_for_immunization/Immunization_Handbook_for_Health_Workers-English.pdf) | NHM | 172 pages, 313 chunks |
 | ncdc-snakebite-stg-2017 | [Standard Treatment Guidelines, Management of Snake Bite](https://ncdc.mohfw.gov.in/uploads/pdf/Standard-Treatment-Guidelines-for-Management-of-Snake-Bite.pdf) | MoHFW / NCDC | 92 pages, 174 chunks |
 | mohfw-rabies-prophylaxis | [National Guidelines on Rabies Prophylaxis](https://clinicalestablishments.mohfw.gov.in/sites/default/files/standard-treatment-guidelines/238.pdf) | NRCP / MoHFW | 17 pages, 53 chunks |
-| ncdc-heat-guideline | [National Guideline on Heat-Related Illness](https://heathealth.info/wp-content/uploads/National-Guideline-on-Heat-Related-Illness_FINAL.pdf) | NCDC (copy on heathealth.info) | 86 pages, 201 chunks |
+| ncdc-heat-action-plan-2021 | [National Action Plan on Heat Related Illnesses (2021)](https://ncdc.mohfw.gov.in/uploads/pdf/heat12.pdf) | NCDC / NPCCHH | 64 pages, 163 chunks (added in S2, see correction below) |
+| ncdc-heat-chw-manual | [Training Manual for Community Health Workers on Heat-Related Illnesses](https://ncdc.mohfw.gov.in/uploads/pdf/heat13.pdf) | NCDC / NPCCHH | 8 pages, 16 chunks (added in S2) |
 | nhm-anaemia-mukt-bharat-2026 | [Anaemia Mukt Bharat Abhiyaan Operational Guidelines (June 2026)](https://www.nhm.gov.in/New-Update-2025-26/Nutrition/AMB-guidelines/AMB-Abhiyaan-Guidelines.pdf) | MoHFW | 146 pages, 186 chunks |
 | ntep-differentiated-tb-care-2025 | [National Guidance on Differentiated TB Care (March 2025)](https://tbcindia.mohfw.gov.in/wp-content/uploads/2025/07/National-Guidance-on-Differential-TB-Care_Final_March-2025-3.pdf) | NTEP | 105 pages, 201 chunks |
 | nhm-idcf-2017 | [Intensified Diarrhoea Control Fortnight Guidelines (2017)](https://nhm.gov.in/images/pdf/IDCF-2017/IDCF_guidelines_2017.pdf) | NHM | 56 pages, 109 chunks |
@@ -115,6 +116,17 @@ Retrieved 2026-11-25. Layer A = community level, B = national guideline, C = WHO
 Immunization Handbook (above) contains the schedule. The NCDC community heat manual and heat action plan URLs
 returned 404 and were replaced by the two NCDC heat documents above. No national typhoid guideline exists (ICMR has
 no enteric-fever workflow either); the WHO typhoid fact sheet covers it.
+
+**Correction (found while writing the S2 answer key, 2026-11-25).** The first heat source,
+`https://heathealth.info/wp-content/uploads/National-Guideline-on-Heat-Related-Illness_FINAL.pdf`, was listed as an
+NCDC document but is Bangladesh's *National Guideline on Heat-Related Illness* (DGHS Dhaka and UNICEF Bangladesh,
+2024): its page 4 says "Government of the People's Republic of Bangladesh". It was removed. The NCDC heat
+documents had moved from `/wp-content/uploads/2024/05/...` (404) to `/uploads/pdf/heatNN.pdf`; the list of them is on
+the [NCDC climate and health page](https://ncdc.mohfw.gov.in/includes/About/CentresAndDivision/CEOH.php). Two
+replace the Bangladesh PDF (table above). Lesson: check the publisher inside every mirrored PDF.
+
+**Second fix.** 171 chunks contained "�" where the PDF drew bullets with a symbol font; `clean_text` now turns it
+into "•". After both fixes: 38 sources listed, 34 used, 3,265 chunks, 213 with doses.
 
 ### Libraries (pinned in `requirements-ingest.txt`)
 
@@ -148,9 +160,89 @@ some ASHA chunks are administrative (incentive tables). The full 20-chunk sample
 
 ### Open points
 
-1. **Hindi documents**: decide whether to convert the two Kruti Dev PDFs to Unicode (a known character mapping)
-   and OCR the scanned one, or rely on English documents with Hindi answers (the S2 English search rewrite).
+1. **Hindi documents**: left out for now (decided 2026-11-25), to revisit once v2 works end to end: convert the
+   three legacy-font PDFs to Unicode (a known character mapping) and OCR the scanned Module 6. Until then Hindi
+   questions are searched through an English rewrite (S2).
 2. **Administrative chunks** (ASHA incentives, programme logistics) could be filtered later if they show up in
    search results for health questions.
 3. On the development machine, installing `langchain-community` upgraded NumPy globally to 2.5.4; it was set back to
    1.26.4 (the version the app pins) and `langchain-community` was removed.
+
+---
+
+## S2: search (retrieval) bake-off (2026-11-25, in progress)
+
+**Goal.** Choose how the bot finds the right chunks for a question in English, Hindi or Hinglish, using numbers
+rather than reputation. The answer step (S3) reads the top 5 chunks, so the main score is hit@5.
+
+### Files
+
+| File | Job |
+|---|---|
+| `app/retrieval/embedders.py` | `E5Embedder`, `LaBSEEmbedder`, `TitanEmbedder` (same two methods: `embed_documents`, `embed_query`); `passage_text()` puts title and section in front of each chunk before embedding |
+| `app/retrieval/keyword.py` | `tokenize()` (English/Hinglish filler words removed, Devanagari kept), `KeywordIndex` (BM25) |
+| `app/retrieval/fusion.py` | `reciprocal_rank_fusion()`: merges ranked lists by rank, k = 60 |
+| `eval/golden_retrieval.yaml` | 27 topics x 3 languages = 81 questions; answer key per topic as a rule (allowed sources + phrases) |
+| `eval/retrieval_bakeoff.py` | Builds and caches embeddings (`data/index/`, saved every 200 chunks), makes English rewrites, scores every method, writes `eval/results/s2_bakeoff.md/.json` |
+| `eval/results/rewrites.json` | Every rewrite each model made (kept in git so the test is repeatable and the mistakes can be read) |
+| `tests/test_retrieval.py` | 5 tests: tokenizer, BM25 ranking, RRF order, passage text, answer-key rule |
+| `pytest.ini` | Local `pytest` runs only `tests/`, like CI (otherwise `scripts/test_cloud.py`, a manual Bedrock check, is collected and its folder hides the new `eval/` package) |
+
+### Models and libraries
+
+| Item | Version / id | Why | Link |
+|---|---|---|---|
+| multilingual-e5-base | `intfloat/multilingual-e5-base`, 278M parameters, 768 dims, ~1.1 GB | Strong multilingual retrieval model, runs on CPU; needs "query: " / "passage: " prefixes | https://huggingface.co/intfloat/multilingual-e5-base |
+| LaBSE | `sentence-transformers/LaBSE`, 768 dims | The model v1 uses; baseline. v2 uses its official pooled [CLS] vector (v1 averaged tokens and cut at 128 tokens) | https://huggingface.co/sentence-transformers/LaBSE |
+| Titan Text Embeddings v2 | `amazon.titan-embed-text-v2:0`, 1,024 dims, Bedrock ap-south-1 | Managed API, no model on the server; $0.02 per million tokens | https://docs.aws.amazon.com/bedrock/latest/userguide/titan-embedding-models.html |
+| rank-bm25 | 0.2.2 | BM25 keyword search | https://pypi.org/project/rank-bm25/ |
+| boto3 | 1.44.11 | Bedrock calls with the AWS CLI credentials (the `.env` Bedrock API key on the laptop had expired) | https://pypi.org/project/boto3/ |
+| Gemma 3 27B | `google.gemma-3-27b-it` (Bedrock) | Query rewrite to English (the current answer model) | |
+| gpt-oss-120b | `openai.gpt-oss-120b-1:0` (Bedrock), reasoning effort low | Query rewrite, compared with Gemma | |
+| RRF | Cormack, Clarke, Buettcher, SIGIR 2009 | Combine dense and BM25 rankings without score scaling | https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf |
+
+Torch 2.5.1 (CUDA) and transformers 4.57.6 on the laptop GPU (RTX 3050) were used to embed; the server pins differ
+(S4 will check e5 on the server CPU).
+
+### What happened
+
+1. **Titan rate limit.** The account allows about one Titan call per second (40 calls: 33 ok, 7 throttled in 30 s).
+   8 parallel calls failed after 30 minutes with nothing saved; fixed with 2 workers, adaptive retries, extra
+   back-off and saving every 200 chunks. The library took ~45 minutes to embed with Titan.
+2. **Rewrite mistakes without help.** Gemma: "loo lagne" -> "leukemia", "लू" -> "fever", "dast" -> "rash",
+   "teen hafte" -> "two weeks". gpt-oss: left words untranslated ("symptoms of loo", "child with dast") and read
+   "teen" as a name.
+3. **Glossary prompt, first version, failed**: with the word list under "Common words:", Gemma returned 13 of 54
+   questions untranslated ("Typhoid kaise failta hai?"). Second version: "the reply must be in English only" and
+   the list given only as meanings: 0 of 108 rewrites left in Hindi/Hinglish, all village words right.
+4. **Answer-key correction after seeing results**: the remaining miss ("cool someone with heat stroke") was
+   answered by the ASHA Module Part C heat chapter ("Management of Heat Stroke ... rapid cooling"), which the key
+   did not list. `asha-integrated-c` was added to both heat topics.
+
+### Results (hit@5 / MRR@10; 27 questions per language, so one question = 0.04)
+
+| Method | Query | English | Hindi | Hinglish | All |
+|---|---|---|---|---|---|
+| BM25 | as typed | 0.93 / 0.72 | 0.00 / 0.00 | 0.44 / 0.25 | 0.46 / 0.32 |
+| LaBSE (v1 model) | as typed | 0.81 / 0.59 | 0.74 / 0.52 | 0.41 / 0.24 | 0.65 / 0.45 |
+| e5-base | as typed | 1.00 / 0.89 | 0.74 / 0.61 | 0.33 / 0.24 | 0.69 / 0.58 |
+| Titan v2 | as typed | 0.96 / 0.86 | 0.81 / 0.62 | 0.48 / 0.30 | 0.75 / 0.59 |
+| e5-base | Gemma rewrite | 1.00 / 0.89 | 0.96 / 0.86 | 0.93 / 0.78 | 0.96 / 0.85 |
+| e5-base | gpt-oss rewrite | 1.00 / 0.89 | 0.93 / 0.77 | 0.89 / 0.74 | 0.94 / 0.80 |
+| **e5-base** | **Gemma rewrite + glossary** | 1.00 / 0.89 | 1.00 / 0.85 | 1.00 / 0.86 | **1.00 / 0.87** |
+| e5-base + BM25 | Gemma rewrite + glossary | 1.00 / 0.81 | 1.00 / 0.85 | 1.00 / 0.85 | 1.00 / 0.83 |
+| e5-base | gpt-oss rewrite + glossary | 1.00 / 0.89 | 1.00 / 0.84 | 1.00 / 0.85 | 1.00 / 0.86 |
+| LaBSE + BM25 | Gemma rewrite + glossary | 1.00 / 0.75 | 1.00 / 0.81 | 1.00 / 0.75 | 1.00 / 0.77 |
+| **Titan v2 + BM25** | **Gemma rewrite + glossary** | 1.00 / 0.84 | 1.00 / 0.92 | 1.00 / 0.89 | **1.00 / 0.88** |
+
+Full table (all 35 combinations) and every rewrite: `eval/results/s2_bakeoff.md`.
+
+### What the numbers say
+
+- Searching Hindi/Hinglish questions as typed fails (Hinglish 0.33-0.52); an English rewrite first is the
+  single biggest gain (to 0.93-1.00).
+- e5-base and Titan beat LaBSE (the v1 model) by a wide margin as dense search.
+- BM25 helps the weaker dense models (LaBSE, Titan) and slightly lowers e5's MRR.
+- **Caveats**: the best setups reach 1.00, so this set can no longer separate them; the glossary and the
+  answer-key fix were both made after seeing these questions, so these scores are optimistic. A fresh set of
+  questions written without looking at the glossary is needed before the final choice.

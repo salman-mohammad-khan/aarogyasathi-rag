@@ -1,0 +1,238 @@
+# Test questions for the search step (S2).
+#
+# Each topic is asked three ways: English (en), Hindi in Devanagari (hi) and Hinglish, i.e. Hindi typed in
+# English letters (hinglish). All three share one answer key, so the scores show directly how much each
+# search method loses on Hindi and Hinglish.
+#
+# Answer key: a chunk counts as a correct result when
+#   - it comes from one of `sources`, and
+#   - its text contains at least one phrase from `any` (lower case), and
+#   - it contains every phrase in `all` (when given).
+# This is written as a rule rather than a list of chunk ids, so it can be read and checked by a person and
+# still works when the chunks are rebuilt.
+
+topics:
+  - id: dengue-symptoms
+    sources: [ncvbdc-dengue-2023, who-dengue]
+    any: ["symptom", "clinical feature", "retro-orbital", "behind the eyes"]
+    questions:
+      en: What are the symptoms of dengue?
+      hi: डेंगू के लक्षण क्या हैं?
+      hinglish: dengue ke lakshan kya hote hain
+
+  - id: dengue-warning-signs
+    sources: [ncvbdc-dengue-2023, who-dengue]
+    any: ["warning sign"]
+    questions:
+      en: Which warning signs in dengue mean the patient must go to hospital?
+      hi: डेंगू में कौन से खतरे के संकेत हों तो तुरंत अस्पताल जाना चाहिए?
+      hinglish: dengue me kaun se khatre ke sign ho to turant hospital jana chahiye
+
+  - id: dengue-mosquito-breeding
+    sources: [ncvbdc-dengue-2023, who-dengue, ncvbdc-chikungunya-2023, asha-integrated-c]
+    any: ["breeding", "stagnant", "container"]
+    all: ["aedes"]
+    questions:
+      en: How can we stop dengue mosquitoes from breeding around the house?
+      hi: घर के आसपास डेंगू के मच्छरों को पनपने से कैसे रोकें?
+      hinglish: ghar ke aas paas dengue ke machhar paida hone se kaise roke
+
+  - id: chikungunya-joint-pain
+    sources: [ncvbdc-chikungunya-2023]
+    any: ["joint pain", "arthralgia", "arthritis"]
+    questions:
+      en: Why does chikungunya cause joint pain and how long does it last?
+      hi: चिकनगुनिया में जोड़ों का दर्द कितने दिन रहता है?
+      hinglish: chikungunya me jodo ka dard kitne din tak rehta hai
+
+  - id: malaria-symptoms
+    sources: [ncvbdc-malaria-2011, who-malaria, asha-integrated-c]
+    any: ["chills", "shivering", "rigor"]
+    questions:
+      en: What are the signs of malaria fever?
+      hi: मलेरिया बुखार के लक्षण क्या होते हैं?
+      hinglish: malaria bukhar ke lakshan kya hote hai
+
+  - id: malaria-bednets
+    sources: [ncvbdc-malaria-2011, who-malaria, asha-integrated-c]
+    any: ["bed net", "bednet", "llins", "llin ", "insecticide-treated net", "insecticide treated net", "mosquito net"]
+    questions:
+      en: Do mosquito nets help prevent malaria?
+      hi: क्या मच्छरदानी से मलेरिया से बचाव होता है?
+      hinglish: kya machhardani lagane se malaria se bachav hota hai
+
+  - id: tb-symptoms
+    sources: [ntep-differentiated-tb-care-2025, who-tuberculosis, asha-integrated-c]
+    any: ["cough"]
+    all: ["tb"]
+    questions:
+      en: I have had a cough for three weeks with weight loss. Could it be TB?
+      hi: तीन हफ्ते से खांसी है और वजन घट रहा है, क्या यह टीबी हो सकती है?
+      hinglish: teen hafte se khansi hai aur wajan kam ho raha hai, kya ye TB ho sakta hai
+
+  - id: tb-treatment-complete
+    sources: [ntep-differentiated-tb-care-2025, who-tuberculosis, asha-integrated-c]
+    any: ["adherence", "full course", "complete the treatment", "complete treatment", "treatment completion", "interrupt", "default"]
+    all: ["treatment"]
+    questions:
+      en: Why must TB medicine be taken for the full course?
+      hi: टीबी की दवा पूरा कोर्स क्यों लेना ज़रूरी है?
+      hinglish: TB ki dawai ka pura course lena kyu zaroori hai
+
+  - id: ors-preparation
+    sources: [nhm-idcf-2017, who-diarrhoea, who-cholera, asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["litre", "liter"]
+    all: ["ors"]
+    questions:
+      en: How do I prepare ORS at home?
+      hi: घर पर ओआरएस का घोल कैसे बनाएं?
+      hinglish: ghar par ORS ka ghol kaise banate hain
+
+  - id: diarrhoea-zinc
+    sources: [nhm-idcf-2017, who-diarrhoea, asha-integrated-b, asha-integrated-c]
+    any: ["zinc"]
+    questions:
+      en: Why is zinc given to children with diarrhoea?
+      hi: बच्चों को दस्त में जिंक क्यों दिया जाता है?
+      hinglish: bacche ko dast me zinc kyu dete hain
+
+  - id: diarrhoea-danger-signs
+    sources: [nhm-idcf-2017, who-diarrhoea, asha-integrated-b, asha-integrated-c]
+    any: ["danger sign", "dehydration", "sunken eyes", "skin pinch"]
+    all: ["diarrh"]
+    questions:
+      en: When should a child with diarrhoea be taken to a doctor?
+      hi: दस्त वाले बच्चे को डॉक्टर के पास कब ले जाना चाहिए?
+      hinglish: dast wale bacche ko doctor ke paas kab le jana chahiye
+
+  - id: pneumonia-fast-breathing
+    sources: [who-pneumonia, asha-integrated-b, asha-integrated-c]
+    any: ["fast breathing", "chest indrawing", "breathing rate"]
+    questions:
+      en: How do I know if my child has pneumonia?
+      hi: कैसे पता करें कि बच्चे को निमोनिया है?
+      hinglish: kaise pata kare ki bacche ko pneumonia hai
+
+  - id: snakebite-first-aid
+    sources: [ncdc-snakebite-stg-2017, who-snakebite]
+    any: ["first aid", "immobili", "reassure"]
+    questions:
+      en: What first aid should be given after a snake bite?
+      hi: सांप काटने पर तुरंत क्या प्राथमिक उपचार करें?
+      hinglish: saanp kaatne par turant kya first aid kare
+
+  - id: snakebite-tourniquet
+    sources: [ncdc-snakebite-stg-2017, who-snakebite]
+    any: ["tourniquet", "cut the wound", "incision", "suck"]
+    questions:
+      en: Should we tie a tight cloth or cut the wound after a snake bite?
+      hi: सांप काटने पर क्या कसकर पट्टी बांधनी चाहिए या घाव काटना चाहिए?
+      hinglish: saanp kaatne par kya kas ke kapda bandhna chahiye ya ghaav kaatna chahiye
+
+  - id: dog-bite-wash
+    sources: [mohfw-rabies-prophylaxis, who-rabies]
+    any: ["soap", "wash", "flush"]
+    questions:
+      en: What should I do immediately after a dog bite?
+      hi: कुत्ते के काटने के तुरंत बाद क्या करना चाहिए?
+      hinglish: kutte ke kaatne ke turant baad kya karna chahiye
+
+  - id: rabies-vaccine
+    sources: [mohfw-rabies-prophylaxis, who-rabies]
+    any: ["day 0", "schedule", "post-exposure", "pep"]
+    questions:
+      en: How many rabies vaccine injections are needed after a dog bite?
+      hi: कुत्ते के काटने के बाद रेबीज़ के कितने इंजेक्शन लगते हैं?
+      hinglish: kutte ke kaatne ke baad rabies ke kitne injection lagte hain
+
+  - id: heatstroke-signs
+    sources: [ncdc-heat-action-plan-2021, ncdc-heat-chw-manual, ncdc-heat-health-impact, who-heat, asha-integrated-c]
+    any: ["heat stroke", "heatstroke"]
+    questions:
+      en: What are the signs of heat stroke?
+      hi: लू लगने के लक्षण क्या हैं?
+      hinglish: loo lagne ke lakshan kya hai
+
+  - id: heatstroke-cooling
+    sources: [ncdc-heat-action-plan-2021, ncdc-heat-chw-manual, ncdc-heat-health-impact, who-heat, asha-integrated-c]
+    any: ["cooling", "cool the", "wet cloth", "sponging", "sponge", "cold water", "ice pack", "fanning"]
+    all: ["heat"]
+    questions:
+      en: How should we cool down someone who collapsed in the heat?
+      hi: गर्मी में बेहोश हुए व्यक्ति को ठंडा कैसे करें?
+      hinglish: garmi me behosh hue aadmi ko thanda kaise kare
+
+  - id: anaemia-symptoms
+    sources: [nhm-anaemia-mukt-bharat-2026, who-anaemia, asha-integrated-a, asha-integrated-b]
+    any: ["fatigue", "tired", "pallor", "pale", "breathless", "weakness"]
+    all: ["anaemia"]
+    questions:
+      en: What are the symptoms of anaemia?
+      hi: खून की कमी के लक्षण क्या हैं?
+      hinglish: khoon ki kami ke lakshan kya hai
+
+  - id: anaemia-iron-food
+    sources: [nhm-anaemia-mukt-bharat-2026, who-anaemia, asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["iron rich", "iron-rich", "green leafy", "jaggery"]
+    questions:
+      en: Which foods are rich in iron?
+      hi: आयरन वाले भोजन कौन से हैं?
+      hinglish: iron wale khane kaun kaun se hain
+
+  - id: pregnancy-danger-signs
+    sources: [asha-integrated-a, asha-integrated-b, asha-integrated-c]
+    any: ["danger sign", "bleeding", "convulsion", "swelling"]
+    all: ["pregnan"]
+    questions:
+      en: What danger signs in pregnancy need a hospital visit?
+      hi: गर्भावस्था में कौन से खतरे के लक्षण दिखें तो अस्पताल जाएं?
+      hinglish: pregnancy me kaun se khatre ke lakshan dikhe to hospital jaye
+
+  - id: newborn-vaccines-birth
+    sources: [nhm-immunization-handbook-hw, nhm-immunization-faq, asha-integrated-b]
+    any: ["at birth", "birth dose"]
+    all: ["bcg"]
+    questions:
+      en: Which vaccines does a newborn baby get at birth?
+      hi: नवजात शिशु को जन्म के समय कौन से टीके लगते हैं?
+      hinglish: navjaat bacche ko janam ke samay kaun se teeke lagte hain
+
+  - id: measles-vaccine-age
+    sources: [nhm-immunization-handbook-hw, nhm-immunization-faq, who-measles]
+    any: ["9 months", "9-12 months", "nine months", "16-24 months", "mr vaccine", "measles-rubella"]
+    questions:
+      en: At what age is the measles vaccine given?
+      hi: खसरे का टीका किस उम्र में लगता है?
+      hinglish: khasre ka teeka kis umar me lagta hai
+
+  - id: hypertension-salt
+    sources: [asha-ncd-module, who-hypertension]
+    any: ["salt"]
+    questions:
+      en: How can high blood pressure be controlled without medicine?
+      hi: बिना दवा के हाई ब्लड प्रेशर कैसे कंट्रोल करें?
+      hinglish: bina dawai ke high BP kaise control kare
+
+  - id: diabetes-symptoms
+    sources: [asha-ncd-module, who-diabetes]
+    any: ["thirst", "urination", "urinate", "frequent urin"]
+    questions:
+      en: What are the early signs of diabetes?
+      hi: शुगर की बीमारी के शुरुआती लक्षण क्या हैं?
+      hinglish: sugar ki bimari ke shuruaati lakshan kya hai
+
+  - id: typhoid-spread
+    sources: [who-typhoid]
+    any: ["contaminated", "food or water", "spread"]
+    questions:
+      en: How does typhoid spread?
+      hi: टाइफाइड कैसे फैलता है?
+      hinglish: typhoid kaise failta hai
+
+  - id: hepatitis-b-spread
+    sources: [who-hepatitis-b]
+    any: ["transmi", "blood", "mother to child"]
+    questions:
+      en: How is hepatitis B passed from one person to another?
+      hi: हेपेटाइटिस बी एक इंसान से दूसरे में कैसे फैलता है?
+      hinglish: hepatitis B ek insaan se dusre me kaise failta hai

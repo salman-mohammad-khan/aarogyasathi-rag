@@ -35,6 +35,10 @@ def test_clean_text_rejoins_hyphenated_words_and_drops_page_numbers():
     assert "\n12\n" not in out
 
 
+def test_clean_text_turns_broken_bullet_symbols_into_bullets():
+    assert clean_text("� Keep water covered") == "• Keep water covered"
+
+
 def test_clean_pages_drops_empty_pages_and_headers():
     bodies = ["Dengue causes high fever.", "Use bed nets at night.", "Give ORS for diarrhoea.",
               "TB needs six months of treatment.", "Wash hands with soap."]
