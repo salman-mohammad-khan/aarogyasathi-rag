@@ -30,6 +30,8 @@ DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
 
 PATHS=(app data/kb data/training web requirements.txt)
+# Built locally, not in git (python -m app.retrieval.index): the v2 search index is uploaded from disk.
+INDEX_PATH=data/index/qdrant
 SSH=(ssh -o BatchMode=yes -o ConnectTimeout=20 -i "$DEPLOY_KEY" "$DEPLOY_HOST")
 
 cd "$(git rev-parse --show-toplevel)"
@@ -70,16 +72,26 @@ smoke_test() {
   # An emergency message must produce the emergency template (it contains the 108 ambulance number).
   "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
     -H 'Content-Type: application/json' \
-    -d '{\"message\":\"my father has chest pain\",\"session_id\":\"deploy-smoke\"}'" | grep -q '108'
+    -d '{\"message\":\"my father has chest pain\",\"session_id\":\"deploy-smoke\"}'" | grep -q '108' || return 1
+  # With PIPELINE=v2, a library question must come back with at least one cited source.
+  if "${SSH[@]}" "curl -fsS -m 10 http://127.0.0.1:$PORT/api/health" | grep -q '"pipeline":"v2"'; then
+    "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
+      -H 'Content-Type: application/json' \
+      -d '{\"message\":\"How can I prevent malaria?\",\"session_id\":\"deploy-smoke-v2\"}'" | grep -q '"sources":\[{'
+  fi
 }
 
 echo "Deploying commit $SHA to $DEPLOY_HOST:$APP_DIR"
 
 echo "1/4 Backup -> $BACKUP"
-"${SSH[@]}" "sudo mkdir -p '$BACKUP_DIR' && cd '$APP_DIR' && sudo tar -czf '$BACKUP' --ignore-failed-read ${PATHS[*]}"
+"${SSH[@]}" "sudo mkdir -p '$BACKUP_DIR' && cd '$APP_DIR' && sudo tar -czf '$BACKUP' --ignore-failed-read ${PATHS[*]} $INDEX_PATH"
 
 echo "2/4 Upload"
 git archive --format=tar HEAD -- "${PATHS[@]}" | "${SSH[@]}" "sudo tar -x -C '$APP_DIR'"
+if [ -d "$INDEX_PATH" ]; then
+  echo "    search index $INDEX_PATH ($(du -sh "$INDEX_PATH" | cut -f1))"
+  tar -czf - "$INDEX_PATH" | "${SSH[@]}" "sudo rm -rf '$APP_DIR/$INDEX_PATH' && sudo tar -xz -C '$APP_DIR'"
+fi
 
 LOCAL_REQ="$(git show HEAD:requirements.txt | sha256sum | cut -d' ' -f1)"
 REMOTE_REQ="$("${SSH[@]}" "sha256sum '$APP_DIR/requirements.txt' | cut -d' ' -f1" 2>/dev/null || true)"

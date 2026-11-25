@@ -28,6 +28,7 @@ ANSWER_MODEL_ID = "qwen.qwen3-235b-a22b-2507-v1:0"
 FALLBACK_MODEL_ID = "google.gemma-3-27b-it"
 REGION = "ap-south-1"
 MAX_TOKENS = 450
+ANSWER_TIMEOUT_S = 20
 
 # Fixed replies, used when the model's own answer cannot be shown.
 NOT_COVERED = {
@@ -69,11 +70,14 @@ class Answer:
 
 def make_llm(model_id: str = ANSWER_MODEL_ID, region: str = REGION):
     """A LangChain chat model for Bedrock's Converse API. gpt-oss gets low reasoning effort (faster, cheaper)."""
+    from botocore.config import Config
     from langchain_aws import ChatBedrockConverse
 
     extra = {"reasoning_effort": "low"} if model_id.startswith("openai.") else None
+    # A stuck call gives up after 20 s so the fallback model (or the "try again" reply) can take over.
+    timeouts = Config(read_timeout=ANSWER_TIMEOUT_S, connect_timeout=5, retries={"max_attempts": 2})
     return ChatBedrockConverse(model=model_id, region_name=region, temperature=0, max_tokens=MAX_TOKENS,
-                               additional_model_request_fields=extra)
+                               additional_model_request_fields=extra, config=timeouts)
 
 
 def _text_only(message) -> str:
@@ -128,11 +132,13 @@ def default_llm():
 
 class Answerer:
     def __init__(self, searcher, llm=None):
+        self.searcher = searcher
         self.chain = build_chain(searcher, llm or default_llm())
 
-    def answer(self, question: str) -> Answer:
+    def answer(self, question: str, lang: str | None = None) -> Answer:
+        """`lang` overrides detection, e.g. a Hinglish follow-up joined to an English question keeps Hinglish."""
         start = time.time()
-        lang = question_language(question)
+        lang = lang or question_language(question)
         try:
             out = self.chain.invoke({"question": question, "lang": lang})
             result = finish(question, lang, out["found"], out["reply"])

@@ -5,9 +5,9 @@ const sendBtn = document.getElementById("sendBtn");
 
 // A slow written answer shows what is happening instead of a bare spinner.
 const SLOW_STAGES = [
-  [4000, "Checking the verified sources…"],
-  [9000, "Writing the answer from the sources. The model runs locally, so this can take a few seconds."],
-  [16000, "Still writing. Longer answers can take up to 20 seconds."],
+  [3000, "Searching the health library…"],
+  [7000, "Writing the answer from the official documents…"],
+  [15000, "Still writing. This can take up to 20 seconds."],
 ];
 // Instant answers (rules, myth matches) would appear before the eye can follow, so the
 // typing indicator is shown for at least this long. Slower answers are not delayed further.
@@ -70,6 +70,13 @@ function parseReply(text) {
 }
 
 function routeLabel(d) {
+  if (d.intent === "library_answer") {
+    if (d.flow === "not_covered") return "Not in the health library, so no answer was made up";
+    if (d.flow === "dose_removed") return "Library answer (medicine amounts removed for safety)";
+    if (d.flow === "error") return "The answer model did not respond";
+    return "Answered from the official health library, with citations";
+  }
+  if (d.intent === "guard") return "Instruction override blocked by a rule";
   if (d.intent === "emergency" && d.flow === "llm_safety") return "Safety check by the model (the word rules found nothing)";
   if (d.intent === "emergency") return "Safety rule, no LLM";
   if (d.factcheck) return "Fact check against curated myths";
@@ -81,7 +88,7 @@ function routeLabel(d) {
 }
 
 function languageLabel(code) {
-  const map = { en: "English", hi: "Hindi / Hinglish" };
+  const map = { en: "English", hi: "Hindi", hinglish: "Hinglish" };
   return map[code] || (code ? String(code).toUpperCase() : "unknown");
 }
 
@@ -112,6 +119,42 @@ function buildTrace(d) {
   return details;
 }
 
+// Answer models write light Markdown ("*   point", "**bold**"); the bubble shows plain text, so turn list markers
+// into bullets, drop the bold markers and collapse runs of blank lines.
+function tidyMarkdown(text) {
+  return String(text)
+    .replace(/^[ \t]*[*\-•][ \t]+/gm, "• ")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+// v2 answers cite numbered sources: "[1] National Guidelines for Dengue 2023, page 47" with a link to the PDF.
+function buildCitations(sources) {
+  const box = el("div", "citations");
+  box.appendChild(el("div", "citations-title", "Sources"));
+  const list = el("ol", "citations-list");
+  for (const s of sources) {
+    const item = el("li");
+    item.value = s.n;
+    const label = s.title + (s.page ? ", page " + s.page : "");
+    if (typeof s.url === "string" && s.url.startsWith("https://")) {
+      const link = el("a", "", label);
+      link.href = s.url + (s.url.toLowerCase().endsWith(".pdf") && s.page ? "#page=" + s.page : "");
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      item.appendChild(link);
+    } else {
+      item.textContent = label;
+    }
+    if (s.publisher) item.appendChild(el("span", "citation-publisher", " (" + s.publisher + ")"));
+    list.appendChild(item);
+  }
+  box.appendChild(list);
+  return box;
+}
+
 function addUser(text) {
   const wrap = el("div", "msg user");
   wrap.appendChild(el("div", "bubble", text));
@@ -132,9 +175,11 @@ function addBot(data) {
     bubble.appendChild(badge);
     bubble.appendChild(document.createElement("br"));
   }
-  bubble.appendChild(document.createTextNode(parsed.body));
+  bubble.appendChild(document.createTextNode(tidyMarkdown(parsed.body)));
 
-  if (parsed.sources.length) {
+  if (Array.isArray(data.sources) && data.sources.length) {
+    bubble.appendChild(buildCitations(data.sources));
+  } else if (parsed.sources.length) {
     const list = el("div", "sources");
     for (const s of parsed.sources) list.appendChild(el("span", "source-chip", s));
     bubble.appendChild(list);
@@ -220,16 +265,8 @@ chatForm.addEventListener("submit", (e) => {
   sendMessage(userInput.value);
 });
 
-// The server prepends its long welcome to a session's first reply in each language,
-// so the session is greeted quietly in English and Hindi. The page shows its own
-// short opening bubble instead of a visible greeting from the user.
-bootDone = (async function boot() {
-  for (const greeting of ["hi", "नमस्ते"]) {
-    try {
-      await postChat(greeting);
-    } catch (e) {}
-  }
-})();
+// The v1 server prepended a long welcome to a session's first reply in each language, so the page used to send
+// two quiet greetings at load. v2 does not, and those two calls are no longer made.
 
 // The opening greeting appears after a short typing indicator, like every other reply.
 (function openingGreeting() {

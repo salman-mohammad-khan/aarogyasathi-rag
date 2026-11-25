@@ -97,6 +97,10 @@ HELPLINES = {
 # WhatsApp Business Cloud API Configuration
 # WhatsApp (Meta Cloud API) is optional. The webhook routes exist only when this is true.
 WHATSAPP_ENABLED = os.environ.get("WHATSAPP_ENABLED", "false").lower() in ("1", "true", "yes")
+
+# Which message pipeline answers chats: "v2" (library search + cited answers, app/pipeline.py) or "v1" (the old
+# router, kept until S6 so a bad deploy can be undone by changing this one line in .env and restarting).
+PIPELINE = os.environ.get("PIPELINE", "v2").strip().lower()
 WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID", "")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "")  # no default: set it in .env
