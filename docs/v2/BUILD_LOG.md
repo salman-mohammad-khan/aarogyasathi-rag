@@ -419,10 +419,15 @@ The judge "amount" flags in the final run were read one by one: all are single-j
 
 ### Decisions and open points
 
-1. **gpt-oss is out** as answer model (drops citations in Hindi/Hinglish). Gemma and Qwen tie on every safety and
-   accuracy measure; Qwen is faster and cheaper. **Pending: the blind A/B review of 10 Hindi/Hinglish answers**
-   (`eval/results/s3_blind_review.md`), since language quality is the deciding factor. The loser becomes failover.
-   `ANSWER_MODEL_ID` stays Gemma until then.
+1. **Answer model: Qwen3-235B, with Gemma 3 27B as automatic fallback** (decided 2026-11-26; he left the choice to
+   me as the scores were so close). gpt-oss is out (drops citations in Hindi/Hinglish). Gemma and Qwen tie on every
+   safety and accuracy measure; reading the Hindi/Hinglish answers side by side, Qwen used everyday Hinglish words
+   ("mirch, haldi, tel, mitti", where Gemma wrote "Chilli, turmeric, oil, mud"), kept to the 80-120 word rule
+   (about 100-126 words; Gemma often 140-190 with filler), and was faster (2.0 s vs 3.2 s) and cheaper. Its weak
+   spot: some formal Hindi words ("निम्न उपाय", "अवशोषण"). Fallback uses LangChain's `with_fallbacks`: if the Qwen
+   call fails, the same prompt runs on Gemma. The English rewrite stays on Gemma (measured in S2). In a toy check
+   with a one-sentence source, Qwen added one tip that was not in it; keep watching faithfulness in S4/S6.
+   The blind A/B review file stays in `eval/results/` for a later human check.
 2. Judges agree on "fully supported" 85-92% of the time; a hand check of a sample is still to do.
 3. The dose checker is regular expressions; it is now strict (it also removes durations like "zinc for 14 days
    daily"). A dose question with every line removed shows only the dose note.

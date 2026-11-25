@@ -127,6 +127,21 @@ def test_reasoning_blocks_are_left_out():
     assert ans.text == "Use bed nets [3]." and ans.sources[0]["n"] == 3
 
 
+def test_backup_model_answers_when_the_first_one_fails():
+    def broken(prompt_value):
+        raise TimeoutError
+
+    backup = RunnableLambda(lambda p: AIMessage(content="Use bed nets at night [2]."))
+    ans = Answerer(FakeSearch(), RunnableLambda(broken).with_fallbacks([backup])).answer("How to prevent malaria?")
+    assert ans.status == "answered" and ans.text == "Use bed nets at night [2]."
+
+
+def test_default_models_are_qwen_then_gemma():
+    from app.answer.chain import ANSWER_MODEL_ID, FALLBACK_MODEL_ID
+
+    assert ANSWER_MODEL_ID.startswith("qwen.") and FALLBACK_MODEL_ID.startswith("google.gemma")
+
+
 def test_model_failure_gives_try_again():
     def broken(prompt_value):
         raise TimeoutError

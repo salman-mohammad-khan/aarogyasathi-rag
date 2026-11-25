@@ -3,7 +3,7 @@
     question
       -> search (S2): English rewrite, e5 + BM25, top 5 chunks
       -> ANSWER_PROMPT (rules + numbered sources + reply language)
-      -> chat model on Bedrock (ChatBedrockConverse; Gemma 3 27B by default)
+      -> chat model on Bedrock (ChatBedrockConverse; Qwen3-235B, falling back to Gemma 3 27B)
       -> checks: "not in sources", citations, medicine amounts, language, leaked instructions
       -> Answer(text, sources, status)
 
@@ -22,7 +22,10 @@ from app.answer.citations import cited_numbers, normalise_markers, remove_invali
 from app.answer.prompt import ANSWER_PROMPT, LANGUAGE_NAMES, NOT_IN_SOURCES, format_sources
 from app.retrieval.rewrite import question_language
 
-ANSWER_MODEL_ID = "google.gemma-3-27b-it"
+# Chosen in S3 (docs/v2/BUILD_LOG.md): Qwen3-235B and Gemma 3 27B tied on accuracy and safety; Qwen wrote more natural
+# Hinglish, kept to the length rule, and was faster and cheaper. Gemma takes over automatically if Qwen fails.
+ANSWER_MODEL_ID = "qwen.qwen3-235b-a22b-2507-v1:0"
+FALLBACK_MODEL_ID = "google.gemma-3-27b-it"
 REGION = "ap-south-1"
 MAX_TOKENS = 450
 
@@ -118,9 +121,14 @@ def finish(question: str, lang: str, found, reply: str) -> Answer:
     return Answer(text=text, status=status, sources=source_list(chunks, numbers), **base)
 
 
+def default_llm():
+    """Qwen first; if the call fails (error, timeout, throttling), LangChain runs the same prompt on Gemma."""
+    return make_llm(ANSWER_MODEL_ID).with_fallbacks([make_llm(FALLBACK_MODEL_ID)])
+
+
 class Answerer:
     def __init__(self, searcher, llm=None):
-        self.chain = build_chain(searcher, llm or make_llm())
+        self.chain = build_chain(searcher, llm or default_llm())
 
     def answer(self, question: str) -> Answer:
         start = time.time()
