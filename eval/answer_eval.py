@@ -41,9 +41,9 @@ CANDIDATES = {
     "qwen3-235b": "qwen.qwen3-235b-a22b-2507-v1:0",
 }
 JUDGES = {"deepseek-v3.2": "deepseek.v3.2", "mistral-large-3": "mistral.mistral-large-3-675b-instruct"}
-# USD per million tokens (input, output). Gemma: AWS Asia-Pacific price; the other two: AWS US list prices,
-# Mumbai to verify on https://aws.amazon.com/bedrock/pricing/ (estimates only).
-PRICES = {"gemma-3-27b": (0.36, 0.59), "gpt-oss-120b": (0.15, 0.60), "qwen3-235b": (0.22, 0.88)}
+# USD per million tokens (input, output), on-demand standard tier, Asia Pacific (Mumbai), from the AWS Price List API
+# (`aws pricing get-products --service-code AmazonBedrock`, regionCode ap-south-1) on 2026-11-26.
+PRICES = {"gemma-3-27b": (0.27, 0.45), "gpt-oss-120b": (0.18, 0.71), "qwen3-235b": (0.26, 1.04)}
 WORKERS = 4
 
 JUDGE_PROMPT = """You check a health assistant's answer against its sources.

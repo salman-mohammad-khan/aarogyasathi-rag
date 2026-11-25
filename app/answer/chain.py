@@ -23,7 +23,7 @@ from app.answer.prompt import ANSWER_PROMPT, LANGUAGE_NAMES, NOT_IN_SOURCES, for
 from app.retrieval.rewrite import question_language
 
 # Chosen in S3 (docs/v2/BUILD_LOG.md): Qwen3-235B and Gemma 3 27B tied on accuracy and safety; Qwen wrote more natural
-# Hinglish, kept to the length rule, and was faster and cheaper. Gemma takes over automatically if Qwen fails.
+# Hinglish, kept to the length rule and was faster (it costs ~$0.14 more per 1,000 answers). Gemma takes over if Qwen fails.
 ANSWER_MODEL_ID = "qwen.qwen3-235b-a22b-2507-v1:0"
 FALLBACK_MODEL_ID = "google.gemma-3-27b-it"
 REGION = "ap-south-1"

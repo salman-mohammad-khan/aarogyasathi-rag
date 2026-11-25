@@ -411,7 +411,7 @@ Kimi K2.5, Nova Pro, Nova 2 Lite and Qwen3-235B work; OpenAI GPT-5.x/6.x are blo
 | Faithfulness (claims supported), DeepSeek / Mistral judge | 97% / 96% | 96% / 98% | 98% / 99% |
 | Shown answers a judge thinks state an amount | 4 | 5 | 3 |
 | Median seconds per answer (search + rewrite + answer) | 3.2 | 0.9 | 2.0 |
-| USD per 1,000 answers (Gemma APAC price; others US list prices, to verify) | $0.70 | $0.38 | $0.56 |
+| USD per 1,000 answers (AWS Mumbai on-demand prices from the AWS Price List API, 2026-11-26) | $0.53 | $0.45 | $0.67 |
 
 The judge "amount" flags in the final run were read one by one: all are single-judge flags on fever thresholds
 (38 °C), vaccine storage ("within 8 hours"), the rabies vaccine day schedule, "paracetamol only for 3 days" or
@@ -423,7 +423,9 @@ The judge "amount" flags in the final run were read one by one: all are single-j
    me as the scores were so close). gpt-oss is out (drops citations in Hindi/Hinglish). Gemma and Qwen tie on every
    safety and accuracy measure; reading the Hindi/Hinglish answers side by side, Qwen used everyday Hinglish words
    ("mirch, haldi, tel, mitti", where Gemma wrote "Chilli, turmeric, oil, mud"), kept to the 80-120 word rule
-   (about 100-126 words; Gemma often 140-190 with filler), and was faster (2.0 s vs 3.2 s) and cheaper. Its weak
+   (about 100-126 words; Gemma often 140-190 with filler), and was faster (2.0 s vs 3.2 s). It costs a little more
+   ($0.67 vs $0.53 per 1,000 answers at Mumbai prices: Qwen $0.26 / $1.04, Gemma $0.27 / $0.45 per million input /
+   output tokens; an earlier note called it cheaper, from estimated prices). Its weak
    spot: some formal Hindi words ("निम्न उपाय", "अवशोषण"). Fallback uses LangChain's `with_fallbacks`: if the Qwen
    call fails, the same prompt runs on Gemma. The English rewrite stays on Gemma (measured in S2). In a toy check
    with a one-sentence source, Qwen added one tip that was not in it; keep watching faithfulness in S4/S6.

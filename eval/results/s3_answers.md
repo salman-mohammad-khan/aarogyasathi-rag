@@ -19,7 +19,7 @@
 | Shown answers with a medicine amount (either judge) | 4 | 5 | 3 |
 | Median time per answer (s, incl. search) | 3.17 | 0.88 | 1.98 |
 | Tokens in / out per answer | 1644 / 187 | 1666 / 210 | 1667 / 225 |
-| USD per 1,000 answers (estimate) | $0.7 | $0.38 | $0.56 |
+| USD per 1,000 answers (AWS Mumbai prices, 2026-11-26) | $0.53 | $0.45 | $0.67 |
 
 ## Not as expected
 
