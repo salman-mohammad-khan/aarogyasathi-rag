@@ -348,3 +348,84 @@ other medicines; errors in rewriting or reading chunks could produce a wrong num
 Guidelines (2020) do not allow AI tools to counsel patients or prescribe directly. Implementation in S3: dose chunks
 are already flagged (`contains_dose`); the answer prompt states the rule; a final check blocks any reply containing a
 dose pattern before it is sent.
+
+---
+
+## S3: answers with citations (2026-11-26)
+
+**Goal.** Turn the 5 chunks from search into a short, cited answer in the user's language, following the medicine
+dose rule, and say "not in my sources" instead of guessing.
+
+```
+question -> search (S2) -> ANSWER_PROMPT (rules + numbered sources + reply language) -> chat model on Bedrock
+         -> checks: NOT_IN_SOURCES, citation format, invalid markers, dose lines, language, leaked prompt
+         -> Answer(text, status, sources[title, page, url])
+```
+
+### Files
+
+| File | Job |
+|---|---|
+| `app/answer/prompt.py` | `SYSTEM_PROMPT` (6 rules: only the sources, cite [n], `NOT_IN_SOURCES`, middle dose rule, no diagnosis or medicine choice, 80-120 words in simple words); `HUMAN_PROMPT` with the reply-language line (the fix from v1 PR #22); `format_sources()` numbers the chunks with title and page |
+| `app/answer/chain.py` | `build_chain()`: the LangChain LCEL chain (`RunnablePassthrough.assign` adds search result, sources text and reply to one dict); `finish()`: all checks and the fixed replies; `Answerer.answer()`; `make_llm()` (`ChatBedrockConverse`, temperature 0, gpt-oss with low reasoning effort); fixed replies in en/hi/hinglish: `NOT_COVERED`, `DOSE_NOTE`, `TRY_AGAIN` |
+| `app/answer/citations.py` | `normalise_markers()` (【1†L1-L5】 and [1, 2] become [1] [2]), `cited_numbers()`, `remove_invalid_markers()`, `source_list()` |
+| `app/answer/checks.py` | `gives_dose()` / `remove_dose_lines()`: unit patterns (English and Hindi: mg, ml, मिग्रा, मि.ली.), counts ("ek goli", "पूरी गोली"), frequencies ("twice a day", "har 6 ghante", "din me ... 4 baar", "6 ghante ka gap") and a line rule (medicine form + number or frequency word on one line), with vaccine schedules by age allowed; `wrong_language()`; `leaks_prompt()` |
+| `app/retrieval/rewrite.py` | `question_language()`: en / hi / hinglish, used for the reply language |
+| `eval/golden_answers.yaml` | 40 questions: 23 covered, 8 dose, 5 not covered, 4 tricks (instruction override, prompt print, stop BP medicine, which antibiotic) |
+| `eval/answer_eval.py` | Same 5 chunks for every model; rule scores; two judges (DeepSeek V3.2, Mistral Large 3, not answer candidates) mark each claim supported or not, whether it answers the question, gives personal medicine advice, or states a medicine amount; tokens and cost |
+| `eval/results/s3_answers.md/.json`, `s3_review.md`, `s3_blind_review.md` (+ `_key.json`) | Results, every answer and verdict, Hindi/Hinglish answers, blind A/B review for a human |
+| `tests/test_answer.py` | 41 tests with a fake chat model: citations, dose lines (every leak found in the test is a regression case), language, leaks, the whole chain, reasoning blocks, Bedrock failure |
+
+`langchain-aws==1.10.0` (https://pypi.org/project/langchain-aws/, `ChatBedrockConverse`) added to
+`requirements-ingest.txt`; numpy unchanged. Judges found by a live call on 2026-11-26: DeepSeek V3.2, Mistral Large 3,
+Kimi K2.5, Nova Pro, Nova 2 Lite and Qwen3-235B work; OpenAI GPT-5.x/6.x are blocked like Claude (Marketplace).
+
+### What happened
+
+1. **gpt-oss citation style.** First run: gpt-oss answered only 36% of covered questions because it writes
+   【1†L1-L5】 instead of [1]; `normalise_markers()` fixed the parsing. It still leaves citations out entirely in
+   some Hindi/Hinglish answers (78% after the fix).
+2. **Test label correction.** "बाल झड़ना कैसे रोकें?" was labelled not covered, but ASHA Module Part C has a
+   hair-care section that two models cited; relabelled "answer" after the first run.
+3. **Off-topic but cited.** Gemma once answered the pimples question with COVID mask advice (cited, irrelevant), so
+   the score now also needs both judges to say the answer actually answers the question. It declined the same
+   question on the next run (temperature 0, still not fully repeatable).
+4. **Models ignore the dose rule.** In every run, all three models stated amounts in 6-11 replies (mostly the 8
+   dose questions) despite rule 4 of the prompt. The code check is what keeps amounts away from users.
+5. **The dose checker had gaps, found by the judges.** One shown answer had "पूरी गोली (20 मिग्रा)"; others had
+   "one IFA tablet daily", "रोज एक बार", "6 ghante ka gap", "din me zyada se zyada 4 baar". Each was added to
+   the checker and to the tests; the judges now also report "states a medicine amount" independently of our
+   checker. False alarms fixed on the way: citation numbers counted as numbers, English "Do" read as Hinglish "two",
+   Hinglish "tab" (then) read as tablet, vaccine schedules ("पहली खुराक 9 महीने") read as doses.
+
+### Result (final run, 40 questions, same chunks for each model)
+
+| | Gemma 3 27B | gpt-oss-120b | Qwen3-235B |
+|---|---|---|---|
+| Expected outcome, all | 100% | 88% | 100% |
+| Covered questions answered with citations (and judged on-topic) | 100% | 78% | 100% |
+| Dose questions with no amount shown | 100% | 100% | 100% |
+| Not-covered questions declined | 100% | 100% | 100% |
+| Tricks handled | 100% | 100% | 100% |
+| Model's own reply stated a dose (caught by the check) | 9 | 11 | 11 |
+| Faithfulness (claims supported), DeepSeek / Mistral judge | 97% / 96% | 96% / 98% | 98% / 99% |
+| Shown answers a judge thinks state an amount | 4 | 5 | 3 |
+| Median seconds per answer (search + rewrite + answer) | 3.2 | 0.9 | 2.0 |
+| USD per 1,000 answers (Gemma APAC price; others US list prices, to verify) | $0.70 | $0.38 | $0.56 |
+
+The judge "amount" flags in the final run were read one by one: all are single-judge flags on fever thresholds
+(38 °C), vaccine storage ("within 8 hours"), the rabies vaccine day schedule, "paracetamol only for 3 days" or
+"the first dose under observation"; no mg, ml, tablet count or times-per-day reached a user.
+
+### Decisions and open points
+
+1. **gpt-oss is out** as answer model (drops citations in Hindi/Hinglish). Gemma and Qwen tie on every safety and
+   accuracy measure; Qwen is faster and cheaper. **Pending: the blind A/B review of 10 Hindi/Hinglish answers**
+   (`eval/results/s3_blind_review.md`), since language quality is the deciding factor. The loser becomes failover.
+   `ANSWER_MODEL_ID` stays Gemma until then.
+2. Judges agree on "fully supported" 85-92% of the time; a hand check of a sample is still to do.
+3. The dose checker is regular expressions; it is now strict (it also removes durations like "zinc for 14 days
+   daily"). A dose question with every line removed shows only the dose note.
+4. 40 questions is a small set; some outcomes changed between runs at temperature 0 (the pimples answer).
+5. Answers to the 8 dose questions sometimes keep clinical lines meant for health workers (ASV infusion, intradermal
+   technique). S4's prompt or a short "public answer" check could trim these.

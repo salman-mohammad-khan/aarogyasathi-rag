@@ -43,6 +43,13 @@ def needs_rewrite(question: str) -> bool:
     return sum(w in _HINGLISH_WORDS for w in words) >= 2
 
 
+def question_language(question: str) -> str:
+    """"hi" (Devanagari letters), "hinglish" (Hindi in English letters) or "en". The answer is written in it."""
+    if _DEVANAGARI.search(question):
+        return "hi"
+    return "hinglish" if needs_rewrite(question) else "en"
+
+
 def _call_model(prompt: str) -> str | None:
     """One short call to the answer model on Bedrock (Gemma 3 27B); None on any failure or timeout."""
     from app.core import generator
