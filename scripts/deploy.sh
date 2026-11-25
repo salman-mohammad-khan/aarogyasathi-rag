@@ -96,8 +96,10 @@ fi
 LOCAL_REQ="$(git show HEAD:requirements.txt | sha256sum | cut -d' ' -f1)"
 REMOTE_REQ="$("${SSH[@]}" "sha256sum '$APP_DIR/requirements.txt' | cut -d' ' -f1" 2>/dev/null || true)"
 if [ "$LOCAL_REQ" != "$REMOTE_REQ" ]; then
-  echo "Note: requirements.txt differs from the VM copy. If dependencies changed, install them on the VM:" >&2
-  echo "  $APP_DIR/venv/bin/pip install -r $APP_DIR/requirements.txt" >&2
+  echo "Note: requirements.txt differs from the VM copy. If dependencies changed, install them on the VM with" >&2
+  echo "  sudo $APP_DIR/venv/bin/python -m pip install -r $APP_DIR/requirements.txt" >&2
+  # Not venv/bin/pip: the portfolio venv was copied from /opt/healthbot/venv and its pip launcher still runs the
+  # group copy's Python, so "venv/bin/pip install" installs into the frozen group copy (it happened on 2026-11-26).
 fi
 
 echo "3/4 Restart $SERVICE"

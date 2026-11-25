@@ -321,6 +321,12 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 |---|---|---|---|---|
 | 2026-11-25 18:36 | Unloaded `qwen3.5:2b` from Ollama memory (`ollama stop qwen3.5:2b`); model files kept on disk | NovaCare's local triage model, but NovaCare uses Bedrock (key set, no local fallback); Ollama had no chat calls since 17 Nov | Available RAM 2.0 GB -> 5.5 GB. Checked after: both AarogyaSathi copies `/api/health` 200, NovaCare home 200 and its AI assistant answered via Bedrock, model not reloaded | `ollama run qwen3.5:2b ""` (or any call to it) loads it again |
 
+| 2026-11-26 ~01:20 | **Mistake, undone:** `pip install -r requirements.txt` with `/opt/healthbot-mine/venv/bin/pip` installed 28 packages into the frozen group copy's venv `/opt/healthbot/venv` and upgraded its `certifi` 2026.7.22 -> 2026.11.20 | The portfolio venv was copied from the group venv; its `pip` launcher's first line is `#!/opt/healthbot/venv/bin/python3` | Undone within minutes: the 28 packages uninstalled and `certifi==2026.7.22` reinstalled in the group venv; its `pip freeze` is again identical to the portfolio venv's original list. The group service was never restarted (uptime 9 days), `/api/health` 200, answers normally. Rule from now: always `venv/bin/python -m pip` (deploy.sh note fixed) | (done) |
+| 2026-11-26 ~01:25 | Installed rank-bm25, qdrant-client, boto3, langchain-core, langchain-aws (+ dependencies) into `/opt/healthbot-mine/venv` with `python -m pip`; numpy 1.26.4, torch 2.6.0, fastapi 0.141.1 unchanged | v2 search and answers | Group venv checked: no `qdrant_client` | `python -m pip uninstall` the same list |
+| 2026-11-26 ~01:30 | Downloaded `intfloat/multilingual-e5-base` (1.1 GB) into `/root/.cache/huggingface` | v2 embedding model | Disk 166 GB free | delete the folder |
+| 2026-11-26 ~01:32 | `/opt/healthbot-mine/.env`: added `PIPELINE=v2` (backup `/opt/healthbot-backups/env-mine-before-v2-*`) | v2 switch | Pre-flight on the server: Qwen and Gemma answered through LangChain with the server's Bedrock key | set `PIPELINE=v1`, restart |
+| 2026-11-26 01:36 | Deployed commit `4aa6442` (S0-S4) with `scripts/deploy.sh` to the portfolio copy; search index `data/index/qdrant` (29 MB) uploaded | v2 live | Health after ~20 s, both smoke tests passed; `/api/health` shows `pipeline: v2`, 3,265 chunks; portfolio process 1.7 GB RAM, 5.1 GB still available; group copy 0.8 GB, untouched | backup `/opt/healthbot-backups/pre-4aa6442-20261126-013658.tgz`, or `PIPELINE=v1` |
+| 2026-11-26 01:38 | Removed files deleted in S0 that the upload had left on the server: `web/admin.css`, `web/admin.html`, `web/admin.js`, `app/surveillance/` | They were still served (`/static/admin.html`) | `/static/admin.html` now 404 | in the deploy backup |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
@@ -488,4 +494,14 @@ message -> empty? help
 - Qwen's Hinglish has small word slips ("daurte pani" for running water).
 - The landing page text above the chat still describes v1 (64 myths, 14 diseases, 396 tests): S6.
 - WhatsApp (off) still uses the v1 router.
-- Files removed in S0 (admin page, surveillance) are still on the server until the deploy removes them by hand.
+- Follow-ups are joined correctly, but the answer may not focus on the new detail ("aur bachchon mein?" after heat
+  stroke gave general heat advice, not children-specific).
+
+### Deploy (2026-11-26)
+
+Live on https://aarogyasathi.nova-care.xyz (portfolio copy only) at commit `4aa6442`; every server step is in the
+"Server change history" table, including one mistake (packages installed into the group copy's venv) that was found
+and undone at once. Live checks after the deploy: English, Hindi and Hinglish questions answered with citations in
+1.4-3.8 s; a dose question had its amounts removed; "protein powder" answered as not covered; an instruction
+override was refused; "mere papa ko seene mein dard" got the emergency reply in 0 ms; the page shows the numbered,
+linked sources and "Answered from the official health library, with citations".
