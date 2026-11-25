@@ -33,6 +33,8 @@ _PATTERNS = [
     # forcing output
     r"\b(end|finish|start|begin|conclude)\s+(your|the)\s+(answer|reply|response|message|output)\s+with\b",
     r"\brepeat after me\b",
+    r"\b(repeat|print|show|copy)\b[^.?!\n]{0,15}\b(the )?(text|message|words) (above|before this)\b",
+    r"\bwhat (are|were) your (rules|instructions)\b",
     r"\bsay\s+['\"“]?\s*i have been\b",
     r"\bi have been (hacked|pwned)\b",
     # Hinglish
