@@ -158,6 +158,13 @@ DISEASE_CANONICAL = {
     "दमा": "asthma",
     "thyroid": "thyroid",
     "थायरॉइड": "thyroid",
+    # Live S5 check: "मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए" matched the curated "stop BP medicine once
+    # normal" myth and showed its BP explanation, because BP had no disease word for the conflict check.
+    "bp": "bp",
+    "blood pressure": "bp",
+    "hypertension": "bp",
+    "बीपी": "bp",
+    "रक्तचाप": "bp",
     "kidney stone": "kidney_stone",
     "pathri": "kidney_stone",
     "पथरी": "kidney_stone",
