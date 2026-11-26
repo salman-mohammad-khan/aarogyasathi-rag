@@ -8,7 +8,7 @@ pydantic==2.13.4
 httpx==0.28.1
 numpy==1.26.4
 transformers==5.15.1
-torch==2.6.0
+torch==2.13.0
 fasttext-wheel==0.9.2
 ddgs==9.15.0
 # v2 search and answers (S2-S4), versions tested on 2026-11-26.
