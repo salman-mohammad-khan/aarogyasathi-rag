@@ -43,7 +43,9 @@ def test_emergency_is_answered_by_the_rules_and_never_searched(run):
 
 
 @pytest.mark.parametrize("text", ["What should I do after a dog bite?", "kutte ne kaat liya",
-                                  "I have heat stroke symptoms"])
+                                  "I have heat stroke symptoms",
+                                  "How should we cool down someone who collapsed in the heat?",
+                                  "garmi me behosh hue aadmi ko thanda kaise kare"])
 def test_bites_and_heat_stroke_keep_the_emergency_reply_and_add_cited_first_aid(run, text):
     reply = run(text)
     assert reply["meta"]["intent"] == "emergency" and "108" in reply["text"]
@@ -131,12 +133,10 @@ def test_follow_up_detection(text, expected):
     assert pipeline.is_follow_up(text) is expected
 
 
-def test_v2_is_the_default_pipeline_and_the_api_returns_sources():
-    from app import config
+def test_the_api_returns_sources_and_tier():
     from app.main import ChatResponse
 
-    assert config.PIPELINE in ("v1", "v2")
-    assert "sources" in ChatResponse.model_fields and "pipeline" in ChatResponse.model_fields
+    assert "sources" in ChatResponse.model_fields and "tier" in ChatResponse.model_fields
 
 
 # --- medicine choice (decided 2026-11-26) ---------------------------------------------------------------------------

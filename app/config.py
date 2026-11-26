@@ -22,36 +22,19 @@ def _load_env():
 _load_env()
 DATA_DIR = BASE_DIR / "data"
 KB_DIR = DATA_DIR / "kb"
-TRAINING_DIR = DATA_DIR / "training"
 MODEL_DIR = DATA_DIR / "models"
-EMBEDDING_CACHE_DIR = DATA_DIR / "embeddings"
 WEB_DIR = BASE_DIR / "web"
 
-EMBEDDING_MODEL = "sentence-transformers/LaBSE"
 LANG_DETECT_MODEL = "lid.176.bin"
-EMBEDDING_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-LLM_TEMPERATURE = 0.1
-
-# The answer model on Amazon Bedrock. It is used only when AWS_BEARER_TOKEN_BEDROCK (a Bedrock API key) is set in the
-# environment; without it the bot uses its written template answers. The key is read at call time, never stored here.
-BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "ap-south-1")
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "google.gemma-3-27b-it")
-BEDROCK_TIMEOUT_S = int(os.environ.get("BEDROCK_TIMEOUT_S", "20"))
-BEDROCK_MAX_TOKENS = int(os.environ.get("BEDROCK_MAX_TOKENS", "400"))
-
-# Second safety layer: when the rules find no emergency, a short hosted-model call reads the message and may still raise
-# the emergency or self-harm reply. It only ever ADDS an alarm and runs only when a Bedrock key is set. Set to false to
-# switch it off.
+# Second safety layer: when the word rules find no emergency, a short Gemma call on Amazon Bedrock reads the message and
+# may still raise the emergency or self-harm reply. It only ever ADDS an alarm and runs only when AWS credentials exist
+# (the server's AWS_BEARER_TOKEN_BEDROCK in .env, or an AWS login). Set to false to switch it off.
 SAFETY_LLM_CHECK = os.environ.get("SAFETY_LLM_CHECK", "true").lower() in ("1", "true", "yes")
 SAFETY_LLM_TIMEOUT_S = float(os.environ.get("SAFETY_LLM_TIMEOUT_S", "2.5"))
 SAFETY_LLM_MAX_TOKENS = int(os.environ.get("SAFETY_LLM_MAX_TOKENS", "40"))
-# Optional different Bedrock model for the check (empty = the main model). A reasoning model such as
-# openai.gpt-oss-20b-1:0 needs SAFETY_LLM_MAX_TOKENS around 900.
-SAFETY_LLM_MODEL_ID = os.environ.get("SAFETY_LLM_MODEL_ID", "")
-
-FACTCHECK_SEARCH_MAX_RESULTS = int(os.environ.get("FACTCHECK_SEARCH_MAX_RESULTS", "5"))
-FACTCHECK_SEARCH_TIMEOUT_S = int(os.environ.get("FACTCHECK_SEARCH_TIMEOUT_S", "8"))
+# Bedrock model for the check (default Gemma 3 27B).
+SAFETY_LLM_MODEL_ID = os.environ.get("SAFETY_LLM_MODEL_ID", "") or "google.gemma-3-27b-it"
 
 SUPPORTED_LANGUAGES = ["en", "hi", "bn", "ta", "te", "mr", "gu", "kn", "ml", "pa", "or", "ur"]
 LANG_NAMES = {
@@ -68,15 +51,6 @@ LANG_NAMES = {
     "or": "Odia",
     "ur": "Urdu",
 }
-
-INTENT_CONFIDENCE_THRESHOLD = 0.55
-RETRIEVAL_SIM_THRESHOLD = 0.52
-FACTCHECK_SIM_THRESHOLD = 0.62
-MAX_RETRIEVED = 5
-
-# Fast-path routing toggle: uses sub-5ms TF-IDF & entity matchers before LLM understanding.
-# Set to False (or ENABLE_FAST_PATH=false in .env) to revert 100% to legacy Double LLM pipeline.
-ENABLE_FAST_PATH = os.environ.get("ENABLE_FAST_PATH", "true").lower() in ("1", "true", "yes")
 
 HELPLINES = {
     "en": "National Health Helpline: 108 (Ambulance), 112 (Emergency), 104 (Health Advice).",
@@ -98,9 +72,6 @@ HELPLINES = {
 # WhatsApp (Meta Cloud API) is optional. The webhook routes exist only when this is true.
 WHATSAPP_ENABLED = os.environ.get("WHATSAPP_ENABLED", "false").lower() in ("1", "true", "yes")
 
-# Which message pipeline answers chats: "v2" (library search + cited answers, app/pipeline.py) or "v1" (the old
-# router, kept until S6 so a bad deploy can be undone by changing this one line in .env and restarting).
-PIPELINE = os.environ.get("PIPELINE", "v2").strip().lower()
 WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN", "")
 WHATSAPP_PHONE_ID = os.environ.get("WHATSAPP_PHONE_ID", "")
 WHATSAPP_VERIFY_TOKEN = os.environ.get("WHATSAPP_VERIFY_TOKEN", "")  # no default: set it in .env

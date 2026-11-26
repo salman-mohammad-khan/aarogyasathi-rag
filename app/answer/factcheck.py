@@ -23,8 +23,6 @@ from app.answer.citations import cited_numbers, normalise_markers, remove_invali
 from app.answer.prompt import LANGUAGE_NAMES, format_sources
 from app.factcheck import verifier
 
-E5_THRESHOLDS = {"pairs": ((0.885, 0.25), (0.94, 0.0)), "plain": (0.885, 0.10), "remedy_sure": 0.97}
-
 LABELS = {
     "en": {"TRUE": "VERIFIED", "MYTH": "MYTH", "PARTLY_TRUE": "PARTLY TRUE", "NOT_ENOUGH_EVIDENCE": "NOT ENOUGH EVIDENCE",
            "LIKELY_MYTH": "LIKELY MYTH"},
@@ -124,7 +122,6 @@ def _parse(reply: str):
 class FactChecker:
     def __init__(self, searcher, web_searcher, llm, ask_risk, embed_texts):
         self.searcher, self.web, self.llm, self.ask_risk = searcher, web_searcher, llm, ask_risk
-        verifier.MATCH_THRESHOLDS["e5"] = E5_THRESHOLDS
         verifier.use_embedder("e5", embed_texts)
 
     # --- 1. curated myths ---------------------------------------------------------------------------------------

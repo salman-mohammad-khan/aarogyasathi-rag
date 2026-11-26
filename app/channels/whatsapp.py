@@ -10,12 +10,30 @@ import httpx
 
 from app import config
 from app.admin_auth import require_admin
-from app.core import router
 from app.core import session as session_store
 
 logger = logging.getLogger("uvicorn.error.aarogyasathi.whatsapp")
 
 whatsapp_router = APIRouter()
+
+
+def _answer(text, session):
+    """The v2 pipeline (app.main.answer_message), with the cited sources written out, since WhatsApp shows plain text
+    only. Imported here, not at the top, because app.main imports this module."""
+    from app.main import answer_message
+
+    result = answer_message(text, session)
+    sources = (result.get("meta") or {}).get("sources") or []
+    seen, lines = set(), []
+    for s in sources:
+        key = (s.get("url"), s.get("page"))
+        if key in seen:
+            continue
+        seen.add(key)
+        lines.append(f"[{s['n']}] {s['title']}" + (f", page {s['page']}" if s.get("page") else "") + f" - {s['url']}")
+    if lines:
+        result = {**result, "text": result["text"] + "\n\nSources:\n" + "\n".join(lines)}
+    return result
 _meta_message_lock = threading.Lock()
 _completed_meta_messages = OrderedDict()
 
@@ -76,7 +94,7 @@ def _handle_meta_inbound_payload(body: dict):
 def _process_meta_inbound_payload(body: dict):
     """
     Background worker that extracts incoming messages, maintains per-phone-number
-    sessions, invokes the AarogyaSathi Fast-Path router, and dispatches responses.
+    sessions, runs the v2 pipeline, and dispatches responses.
     """
     try:
         entries = body.get("entry", [])
@@ -127,8 +145,8 @@ def _process_meta_inbound_payload(body: dict):
                     # Use the phone number as the persistent user session key
                     user_session = session_store.get_session(from_number)
 
-                    # Execute AarogyaSathi clinical / factcheck / triage router
-                    result = router.process_message(user_text, session=user_session)
+                    # The same v2 pipeline as the web chat (safety rules first, then library answers)
+                    result = _answer(user_text, user_session)
                     bot_reply = result.get("text", "")
 
                     if bot_reply:
@@ -215,7 +233,7 @@ def simulate_whatsapp_chat(req: dict):
     message = req.get("message", "What are dengue symptoms?")
 
     user_session = session_store.get_session(from_number)
-    result = router.process_message(message, session=user_session)
+    result = _answer(message, user_session)
     reply = result.get("text", "")
     meta = result.get("meta", {})
 

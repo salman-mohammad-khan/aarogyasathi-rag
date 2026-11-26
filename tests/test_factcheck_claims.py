@@ -1,41 +1,56 @@
-"""Fact-check: the right myth for remedy claims, Hinglish claims, and plain claims without the prefix."""
-import sys
-from pathlib import Path
+"""Fact-check: the right curated myth for remedy claims, Hinglish claims, and plain claims without the prefix.
 
+Uses the real e5 model (downloaded by scripts/setup.py, as in CI) because these tests are about the matching itself;
+the library, website and model steps are not used (no network)."""
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from app.core import generator, intent, kb
-from app.core import session as session_store
-from app.core.router import process_message
+from app import pipeline
+from app.answer.factcheck import FactChecker
+from app.core import kb, safety_llm
 from app.factcheck import verifier
+from app.retrieval.embedders import E5Embedder
+from tests.pipeline_helpers import FakeAnswerer, session
 
 kb.load()
-intent.load()
-generator._availability = False
-verifier._live_lookup = lambda claim, lang=None: None  # no network in tests
+_e5 = E5Embedder()
+verifier.use_embedder("e5", _e5.embed_queries)
+
+
+class CuratedOnly:
+    """The real curated-myth step of the v2 fact-checker, without the library, websites or models."""
+
+    def __init__(self):
+        self.checker = FactChecker.__new__(FactChecker)
+
+    def curated(self, text, lang, plain=False):
+        return FactChecker.curated(self.checker, text, lang, plain)
+
+    def check(self, text, lang):
+        return self.curated(text, lang)
+
+
+@pytest.fixture(autouse=True)
+def no_model_check(monkeypatch):
+    monkeypatch.setattr(safety_llm, "start", lambda text: None)
 
 
 def ask(text):
-    s = session_store.get_session("claim_test")
-    s.clear()
-    return process_message(text, session=s)
+    return pipeline.process_message(text, session("claim_test"), FakeAnswerer(), None, CuratedOnly())
 
 
 @pytest.mark.parametrize(
-    "claim,verdict,fragment",
+    "claim,verdict",
     [
-        ("Garlic can cure dengue fever", "MYTH", "garlic"),
-        ("Giloy juice cures dengue", "PARTLY_TRUE", "giloy"),
-        ("Papaya leaf juice raises platelet count in dengue", "PARTLY_TRUE", "papaya"),
-        ("lehsun khane se dengue theek ho jata hai", "MYTH", "garlic"),
-        ("kutte ke kaatne par mirchi lagane se rabies nahi hota", "MYTH", "chilli"),
-        ("garam paani peene se corona khatam ho jata hai", "MYTH", "hot"),
-        ("BP normal aa jaye to dawai band kar sakte hain", "MYTH", "bp"),
+        ("Garlic can cure dengue fever", "MYTH"),
+        ("Giloy juice cures dengue", "PARTLY_TRUE"),
+        ("Papaya leaf juice raises platelet count in dengue", "PARTLY_TRUE"),
+        ("lehsun khane se dengue theek ho jata hai", "MYTH"),
+        ("kutte ke kaatne par mirchi lagane se rabies nahi hota", "MYTH"),
+        ("garam paani peene se corona khatam ho jata hai", "MYTH"),
+        ("BP normal aa jaye to dawai band kar sakte hain", "MYTH"),
     ],
 )
-def test_right_myth_matched(claim, verdict, fragment):
+def test_right_myth_matched(claim, verdict):
     r = verifier.verify_claim(claim)
     assert r["verdict"] == verdict, (claim, r["verdict"], (r.get("matched_claim") or {}).get("en"))
 
@@ -87,11 +102,13 @@ def test_information_questions_are_not_claims(text):
     assert r["meta"].get("route") != "claim_detect", (text, r["meta"])
 
 
-def test_unknown_plain_claim_is_not_judged():
-    r = ask("Wearing a copper bracelet cures arthritis")
-    assert r["meta"].get("route") != "claim_detect"
+@pytest.mark.parametrize("claim", ["Wearing a copper bracelet cures arthritis", "Onion in socks cures fever",
+                                   "Neem leaves cure diabetes completely"])
+def test_unknown_plain_claims_are_not_judged(claim):
+    assert ask(claim)["meta"].get("route") != "claim_detect"
 
 
-def test_prefixed_unknown_claim_is_still_unverifiable():
-    r = verifier.verify_claim("Wearing a copper bracelet cures arthritis")
-    assert r["verdict"] in ("UNVERIFIABLE", "PARTLY_TRUE", "MYTH")
+@pytest.mark.parametrize("claim", ["मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए",
+                                   "malaria ki dawai bukhar utarte hi band kar do"])
+def test_a_malaria_claim_does_not_get_the_bp_myth(claim):
+    assert verifier.verify_claim(claim)["verdict"] == "UNVERIFIABLE"

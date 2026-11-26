@@ -29,7 +29,7 @@ HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-240}"
 DRY_RUN=0
 [ "${1:-}" = "--dry-run" ] && DRY_RUN=1
 
-PATHS=(app data/kb data/training web requirements.txt)
+PATHS=(app data/kb web requirements.txt)
 # Built locally, not in git (python -m app.retrieval.index): the v2 search index is uploaded from disk.
 INDEX_PATH=data/index/qdrant
 SSH=(ssh -o BatchMode=yes -o ConnectTimeout=20 -i "$DEPLOY_KEY" "$DEPLOY_HOST")
@@ -73,12 +73,10 @@ smoke_test() {
   "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
     -H 'Content-Type: application/json' \
     -d '{\"message\":\"my father has chest pain\",\"session_id\":\"deploy-smoke\"}'" | grep -q '108' || return 1
-  # With PIPELINE=v2, a library question must come back with at least one cited source.
-  if "${SSH[@]}" "curl -fsS -m 10 http://127.0.0.1:$PORT/api/health" | grep -q '"pipeline":"v2"'; then
-    "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
-      -H 'Content-Type: application/json' \
-      -d '{\"message\":\"How can I prevent malaria?\",\"session_id\":\"deploy-smoke-v2\"}'" | grep -q '"sources":\[{'
-  fi
+  # A library question must come back with at least one cited source.
+  "${SSH[@]}" "curl -fsS -m 90 -X POST http://127.0.0.1:$PORT/api/chat \
+    -H 'Content-Type: application/json' \
+    -d '{\"message\":\"How can I prevent malaria?\",\"session_id\":\"deploy-smoke-v2\"}'" | grep -q '"sources":\[{'
 }
 
 echo "Deploying commit $SHA to $DEPLOY_HOST:$APP_DIR"

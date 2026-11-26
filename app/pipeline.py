@@ -3,7 +3,7 @@
     1. empty message                 -> short help text
     2. emergency or self-harm words  -> emergency / helpline reply (rules; no model, no search)
     3. instruction override          -> fixed refusal (rules; no model sees the text)
-    4. fact-check request or a known myth -> v1 fact-check (moves onto the library in S5)
+    4. fact-check request, or a sentence matching a known myth -> fact-check (S5: myths, library, websites)
     5. greeting                      -> greeting
     6. "which medicine should I take" without a guideline disease, or for an antibiotic -> "a doctor must choose"
     7. everything else               -> v2: follow-up joining -> search (S2) -> cited answer (S3)
@@ -11,9 +11,8 @@
     In parallel with 7, the model safety check (Gemma) looks for emergencies the word rules missed; if it finds
     one, its emergency reply replaces the answer.
 
-Steps 2-5 reuse the tested v1 safety code (app/core/safety.py, guard.py, safety_llm.py, factcheck/). Only step 6 is
-new. Which pipeline runs is set by PIPELINE in .env ("v2" default, "v1" = the old router, kept until S6 so a bad
-deploy can be undone by changing one line).
+Steps 2-5 reuse the tested safety code from the first version (app/core/safety.py, guard.py, safety_llm.py); the old
+router, intent model and LaBSE search were removed in S6 (git tag v2.0-with-v1-fallback keeps them).
 """
 import re
 import time
@@ -21,11 +20,16 @@ import time
 from app.answer import general
 from app.answer.chain import Answer
 from app.core import entities, guard, kb, language, safety, safety_llm
-from app.core.router import FACT_TRIGGERS, _model_safety_result
 from app.factcheck import verifier
 from app.retrieval.rewrite import question_language
 
 GREETINGS = {"hi", "hello", "hey", "namaste", "namaskar", "नमस्ते", "नमस्कार", "हैलो", "हाय"}
+# Words that ask for a fact-check (moved here from the v1 router when it was removed in S6).
+FACT_TRIGGERS = [
+    "fact check", "fact-check", "verify", "is this true", "ye sach hai kya", "kya ye sach",
+    "सच है क्या", "जाँच करो", "फैक्ट चेक", "check this", "sahi hai ya galat", "सही है या गलत",
+    "myth or truth", "sach ya jhooth", "real or fake",
+]
 
 # Emergencies where first aid matters while help is on the way: the emergency reply stays on top and the cited
 # first-aid answer from the library is added below it. (Snake bite already has first aid in the v1 reply.)
@@ -49,10 +53,16 @@ TELE_MANAS = {
 }
 
 
+_HEAT = re.compile(r"\bheat\b|\bsun\b|garmi|dhoop|\bloo\b|गर्मी|धूप|लू", re.IGNORECASE)
+
+
 def needs_first_aid(text: str, red_flags: list[str]) -> bool:
     if red_flags and set(red_flags) <= FIRST_AID_FLAGS:
         return True
-    return red_flags == ["stroke"] and bool(_HEAT_STROKE.search(text))
+    if red_flags == ["stroke"] and _HEAT_STROKE.search(text):
+        return True
+    # "someone collapsed in the heat" (S6): the unconscious rule fires; cooling first aid helps while help comes.
+    return red_flags == ["unconscious"] and bool(_HEAT.search(text))
 
 # --- follow-up questions ------------------------------------------------------------------------------------------
 FOLLOW_UP_MAX_WORDS = 7
@@ -103,10 +113,18 @@ def _fact_reply(result, route=None) -> dict:
                   sources=result.sources, flow=result.basis, generator="v2", route=route)
 
 
+def _model_safety_result(text, lang, label):
+    """The same emergency or helpline reply the word rules give, raised by the model safety check instead."""
+    lang = safety.emergency_language(text, lang)
+    reply = safety.self_harm_response(lang) if label == "SELF_HARM" else safety.emergency_response(lang, [])
+    return {"text": reply, "meta": {"intent": "emergency", "flow": "llm_safety", "red_flags": [], "lang": lang,
+                                    "model_label": label}}
+
+
 def _rules_first(text: str, session, fact_checker=None) -> dict | None:
     """Steps 2-5. Returns a reply, or None when the message should be answered from the library.
 
-    With `fact_checker` (v2, S5) fact-checks use the library; without it, the v1 verifier (curated myths, LaBSE)."""
+    `fact_checker` (S5) checks claims against the curated myths, the library and trusted websites."""
     lang = _v1_lang(text)
     lower = text.lower()
     red_flags = safety.check_red_flags(text)
@@ -124,23 +142,15 @@ def _rules_first(text: str, session, fact_checker=None) -> dict | None:
         return _reply(kb.msg(lang, "guard_refusal"), "guard", lang, route="rule")
     if any(t in lower for t in FACT_TRIGGERS):
         session.clear()
-        if fact_checker is not None:
-            return _fact_reply(fact_checker.check(text, question_language(text)))
-        result = verifier.verify_claim(text, lang)
-        return _reply(verifier.format_verdict(result, lang), "fact_check", lang, verdict=result["verdict"],
-                      factcheck=result)
+        if fact_checker is None:
+            return _reply(kb.msg(lang, "factcheck_no_claim"), "fact_check", lang)
+        return _fact_reply(fact_checker.check(text, question_language(text)))
     if fact_checker is not None and verifier.looks_like_claim(text):
-        # A sentence not marked as a fact-check is judged only if it closely matches a known myth (as in v1).
+        # A sentence not marked as a fact-check is judged only if it closely matches a known myth.
         result = fact_checker.curated(text, question_language(text), plain=True)
         if result:
             session.clear()
             return _fact_reply(result, route="claim_detect")
-    elif verifier.looks_like_claim(text):
-        result = verifier.verify_claim(text, lang, strict_remedy=True, allow_live=False, plain=True)
-        if result.get("verdict") not in ("UNVERIFIABLE", "INVALID", None):
-            session.clear()
-            return _reply(verifier.format_verdict(result, lang), "fact_check", lang, verdict=result["verdict"],
-                          factcheck=result, route="claim_detect")
     if lower.strip(" !.?") in GREETINGS:
         return _reply(kb.msg(lang, "greeting"), "greeting", lang)
     return None

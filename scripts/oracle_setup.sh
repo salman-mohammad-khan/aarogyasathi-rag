@@ -29,13 +29,12 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-echo "[5/6] Pre-building the embedding index (downloads LaBSE ~2.2GB, ~2-4 min)..."
-mkdir -p data/models data/embeddings
-if [ ! -f data/models/lid.176.bin ]; then
-    echo "  downloading fastText language model..."
-    curl -fsSL -o data/models/lid.176.bin https://dl.fbaipublicfiles.com/fasttext/supervised-models/lid.176.bin
-fi
-PYTHONPATH=/opt/healthbot ./venv/bin/python scripts/build_index.py
+echo "[5/6] Downloading models (e5 ~1.1 GB, fastText) and building the document library and search index..."
+mkdir -p data/models
+PYTHONPATH=/opt/healthbot ./venv/bin/python scripts/setup.py
+./venv/bin/pip install -r requirements-ingest.txt
+PYTHONPATH=/opt/healthbot ./venv/bin/python -m ingest.build_chunks
+PYTHONPATH=/opt/healthbot ./venv/bin/python -m app.retrieval.index
 chown -R ubuntu:ubuntu data || true
 
 echo "[6/6] Installing systemd service..."

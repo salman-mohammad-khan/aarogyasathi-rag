@@ -6,8 +6,6 @@ services:
     environment:
       - PYTHONPATH=/app
       - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK:-}
-      - BEDROCK_REGION=${BEDROCK_REGION:-ap-south-1}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-google.gemma-3-27b-it}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

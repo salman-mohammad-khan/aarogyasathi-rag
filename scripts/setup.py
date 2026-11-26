@@ -1,25 +1,36 @@
+"""Download the two models the app needs at runtime, so the first start (or CI) does not wait for them.
+
+    python scripts/setup.py
+
+1. multilingual-e5-base (about 1.1 GB, Hugging Face cache): search and the curated-myth match.
+2. fastText language identification lid.176.bin (about 130 MB, data/models): picks the language of emergency replies.
+The document library and the search index are built separately: `python -m ingest.build_chunks` then
+`python -m app.retrieval.index`.
+"""
+import shutil
 import sys
 
-from app.config import EMBEDDING_MODEL, MODEL_DIR
-from app.core.embeddings import embed_texts
+from app.config import LANG_DETECT_MODEL, MODEL_DIR
+
 
 def main():
-    print(f"Downloading embedding model: {EMBEDDING_MODEL} ...")
-    vectors = embed_texts(["health test sentence"])
-    print(f"Embedding model ready (dim={vectors.shape[1]})")
+    from huggingface_hub import snapshot_download
 
-    print(f"Downloading language detection model: lid.176.bin ...")
-    import fasttext
-    try:
-        fasttext.download_model("lid.176.bin")
-    except Exception as e:
-        print(f"fasttext download failed: {e}")
-        return
-    import shutil
-    target = MODEL_DIR / "lid.176.bin"
-    shutil.move("lid.176.bin", str(target))
-    print(f"Language model ready at {target}")
+    print("Downloading intfloat/multilingual-e5-base ...")
+    snapshot_download("intfloat/multilingual-e5-base", allow_patterns=[
+        "config.json", "model.safetensors", "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json",
+        "sentencepiece.bpe.model"])
+    target = MODEL_DIR / LANG_DETECT_MODEL
+    if not target.exists():
+        print(f"Downloading fastText language model {LANG_DETECT_MODEL} ...")
+        import urllib.request
+
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        tmp = target.with_suffix(".part")
+        urllib.request.urlretrieve(f"https://dl.fbaipublicfiles.com/fasttext/supervised-models/{LANG_DETECT_MODEL}", tmp)
+        shutil.move(str(tmp), str(target))
     print("SETUP COMPLETE")
+
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -3,7 +3,7 @@
 A message that tries to change the bot's role, rules or output, to read its prompt or keys, or to switch the safety
 rules off, gets a fixed reply. No model is called for it, so a clever wording cannot talk its way through.
 Plain word patterns in English, Hinglish and Hindi; like the emergency rules they cannot understand a message, they only
-match wordings listed here. The model prompts add a second layer (see generator.py).
+match wordings listed here. Output checks add a second layer (app/answer/checks.py: prompt leaks, language, doses).
 """
 import re
 

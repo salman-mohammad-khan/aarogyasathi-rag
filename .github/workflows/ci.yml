@@ -36,7 +36,7 @@ jobs:
           pip install -r requirements-ingest.txt
           pip install pytest
 
-      # LaBSE (about 1.8 GB) lives in the Hugging Face cache; the language-id model lives in data/models.
+      # multilingual-e5-base (about 1.1 GB) lives in the Hugging Face cache; the language-id model in data/models.
       - name: Cache models
         id: models
         uses: actions/cache@v4
