@@ -52,6 +52,7 @@ class ChatResponse(BaseModel):
 _started = False
 _answerer = None  # v2: search index + answer chain, built once at startup
 _outside = None  # v2 (S4b): trusted website and general-information tiers
+_fact_checker = None  # v2 (S5): fact-check on curated myths, the library and trusted websites
 
 
 def _build_answerer():
@@ -68,20 +69,27 @@ def _build_answerer():
 
 @app.on_event("startup")
 def startup():
-    global _started, _answerer, _outside
+    global _started, _answerer, _outside, _fact_checker
     if _started:
         return
     _started = True
     kb.load()
     language._load()
-    verifier._ensure_index()  # fact-check still uses LaBSE until S5
-    embeddings.get_model()
     if config.PIPELINE == "v2":
+        # v2 needs no LaBSE: search and the curated-myth match both use e5 (S5).
         _answerer = _build_answerer()
-        from app.answer.outside import OutsideLibrary
+        from app.answer.chain import default_llm
+        from app.answer.factcheck import FactChecker
+        from app.answer.outside import OutsideLibrary, _gemma_ask
+        from app.answer.trusted_web import WebSearcher
 
         _outside = OutsideLibrary()
+        _fact_checker = FactChecker(_answerer.searcher, WebSearcher(), default_llm(), _gemma_ask(),
+                                    _answerer.searcher.embedder.embed_queries)
+        verifier._ensure_index()  # curated myths, embedded with e5
     else:
+        verifier._ensure_index()  # v1: curated myths with LaBSE
+        embeddings.get_model()
         intent.load()
         retriever._ensure_index()
 
@@ -131,7 +139,7 @@ def chat(req: ChatRequest):
     start = time.time()
     session = session_store.get_session(req.session_id)
     if config.PIPELINE == "v2":
-        result = pipeline.process_message(req.message, session, _answerer, _outside)
+        result = pipeline.process_message(req.message, session, _answerer, _outside, _fact_checker)
     else:
         result = process_message(req.message, None, session)
         history = session.get("history") or []
@@ -150,7 +158,9 @@ def chat(req: ChatRequest):
         "PARTLY_TRUE": "PARTLY TRUE",
         "UNVERIFIABLE": "UNVERIFIABLE",
     }.get(verdict, verdict)
-    if factcheck is not None:
+    if factcheck is not None and "basis" in factcheck:
+        pass  # v2 (S5): already in display form (verdict label, basis, source names; no confidence percentage)
+    elif factcheck is not None:
         factcheck = {
             "verdict": verdict_display,
             "confidence": factcheck.get("confidence"),

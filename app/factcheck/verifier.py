@@ -20,6 +20,30 @@ _FORWARD_PREFIX = re.compile(r"^(forwarded|forwarded message|फॉरवर्�
 
 _index = None
 
+# Which embedding model matches claims to the curated myths. v1 uses LaBSE (app/core/embeddings.py); the v2 pipeline
+# (S5) switches to e5, already loaded for search, so LaBSE no longer has to be in memory. Each model has its own
+# similarity scale, so the match thresholds are per model (e5's were tuned on the claim tests, docs/v2/BUILD_LOG.md S5).
+_embed_texts = None  # None = LaBSE; otherwise a function: list of texts -> L2-normalised vectors
+_embed_name = "labse"
+MATCH_THRESHOLDS = {
+    # (similarity, overlap) pairs: a match needs one pair satisfied; "plain" is the extra bar for claims typed
+    # without "fact check".
+    "labse": {"pairs": ((0.70, 0.35), (0.80, 0.25), (FACTCHECK_SIM_THRESHOLD, 0.40)), "plain": (0.75, 0.40),
+              "remedy_sure": 0.90},
+}
+
+
+def use_embedder(name, embed_texts):
+    """Match claims with another embedding model (v2: e5). Rebuilds the myth index on next use."""
+    global _embed_texts, _embed_name, _index
+    _embed_texts, _embed_name, _index = embed_texts, name, None
+
+
+def _vectors(texts, cache_name=None):
+    if _embed_texts is None:
+        return embeddings.embed_with_cache(cache_name, texts) if cache_name else embeddings.embed_texts(texts)
+    return np.asarray(_embed_texts(texts), dtype=np.float32)
+
 _VERDICT_LABELS = {
     "TRUE": "VERIFIED",
     "MYTH": "MYTH",
@@ -120,6 +144,23 @@ DISEASE_CANONICAL = {
     "heart attack": "cardiac",
     "stroke": "cardiac",
     "लकवा": "cardiac",
+    # Added in S5: without these, "Neem leaves cure diabetes" matched the curated "neem cures chickenpox" myth,
+    # because the chickenpox entry had no disease word for the conflict check to compare.
+    "chickenpox": "chickenpox",
+    "chicken pox": "chickenpox",
+    "chhoti mata": "chickenpox",
+    "छोटी माता": "chickenpox",
+    "arthritis": "arthritis",
+    "gathiya": "arthritis",
+    "गठिया": "arthritis",
+    "asthma": "asthma",
+    "dama": "asthma",
+    "दमा": "asthma",
+    "thyroid": "thyroid",
+    "थायरॉइड": "thyroid",
+    "kidney stone": "kidney_stone",
+    "pathri": "kidney_stone",
+    "पथरी": "kidney_stone",
 }
 
 SEVERE_DISEASES = {"cancer", "tb", "rabies", "hiv", "cholera", "pneumonia", "polio", "cardiac"}
@@ -614,7 +655,7 @@ def _ensure_index():
         for variant in variants:
             claims.append(variant)
             entries.append(entry)
-    matrix = embeddings.embed_with_cache("myth_claims", claims)
+    matrix = _vectors(claims, "myth_claims")
     _index = {"claims": claims, "entries": entries, "matrix": matrix}
     return _index
 
@@ -636,7 +677,7 @@ def verify_claim(text, lang="en", strict_remedy=False, allow_live=True, plain=Fa
     if dangerous_fa:
         return dangerous_fa
 
-    qv = embeddings.embed_texts([claim])[0]
+    qv = _vectors([claim])[0]
     sims = embeddings.cosine_similarity(qv, index["matrix"])
 
     # 2. Disease- and remedy-aware re-ranking
@@ -689,16 +730,13 @@ def verify_claim(text, lang="en", strict_remedy=False, allow_live=True, plain=Fa
     ek = _disease_keys(entry["claim"].get("en", "")) | _disease_keys(entry["claim"].get("hi", "")) | _disease_keys(row_text)
     disease_conflict = bool(ck) and bool(ek) and not (ck & ek)
     er_best = _entry_remedy_keys(entry, row_text)
-    remedy_conflict = bool(er_best) and not (rk & er_best) and (strict_remedy or best_sim < 0.90)
+    th = MATCH_THRESHOLDS[_embed_name]
+    remedy_conflict = bool(er_best) and not (rk & er_best) and (strict_remedy or best_sim < th["remedy_sure"])
 
-    use_curated = (
-        (best_sim >= 0.70 and overlap >= 0.35 and not disease_conflict)
-        or (best_sim >= 0.80 and overlap >= 0.25 and not disease_conflict)
-        or (best_sim >= FACTCHECK_SIM_THRESHOLD and overlap >= 0.40 and not disease_conflict)
-    ) and not remedy_conflict
+    use_curated = any(best_sim >= s and overlap >= o for s, o in th["pairs"]) and not disease_conflict         and not remedy_conflict
     if plain:
         # A plain message was not marked as a claim by the user, so only a close match may answer it.
-        use_curated = use_curated and best_sim >= 0.75 and overlap >= 0.40
+        use_curated = use_curated and best_sim >= th["plain"][0] and overlap >= th["plain"][1]
 
     if not use_curated:
         if not allow_live:

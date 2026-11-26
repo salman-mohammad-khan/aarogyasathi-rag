@@ -155,6 +155,10 @@ a:hover { text-decoration: underline; }
 .verdict-VERIFIED, .verdict-सत्य { background: #1c4433; color: #7ae8b0; }
 .verdict-PARTLY\ TRUE, .verdict-आंशिक\ सत्य { background: #4a3d1c; color: #ffd98a; }
 .verdict-UNVERIFIABLE, .verdict-पुष्टि\ असंभव { background: #333b47; color: #b9c3cf; }
+/* v2 (S5) verdict labels; spaces in labels become underscores in the class name */
+.verdict-PARTLY_TRUE { background: #4a3d1c; color: #ffd98a; }
+.verdict-NOT_ENOUGH_EVIDENCE { background: #333b47; color: #b9c3cf; }
+.verdict-LIKELY_MYTH { background: #4a2f1c; color: #ffc08a; }
 
 .sources { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .source-chip {

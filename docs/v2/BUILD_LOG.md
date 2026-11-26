@@ -609,3 +609,69 @@ checked in `pipeline.process_message` before the library search (reply status `m
 Hinglish word list widened again ("liye", "kaunsi", "lu"...) after "dast ke liye kaunsi antibiotic lu" was read as
 English; all 151 test questions still detected right. Tests: 20 hand-picked questions routed right; 11 new pipeline
 tests; full suite 644 passed.
+
+---
+
+## S5: fact-check on the library (2026-11-27)
+
+**Goal.** Check health claims against the official library (with citations) instead of v1's fixed list + LaBSE +
+live web lookup, and stop loading LaBSE in v2. Decided by him: keep the curated myths (matched with e5), trusted
+websites when the library has no evidence, no confidence percentage (show what the verdict is based on), same
+triggers as v1, plus a model "general view" only in the safe direction; add useful government sites.
+
+```
+"fact check: <claim>" or a sentence that closely matches a known myth
+  1. curated myths (64 human-checked + v1 dangerous first-aid rules), now matched with e5      -> instant
+  2. library: search + the answer model judges the claim against the 5 pages (TRUE / MYTH / PARTLY_TRUE /
+     NOT_ENOUGH_EVIDENCE, with [n] citations; Indian national sources win over international ones)
+  3. trusted websites (same allowlist, now + PIB and ICMR) when the library has no evidence
+  4. model's general view: only LIKELY_MYTH or NOT_ENOUGH_EVIDENCE (never VERIFIED), only for claims the S4b risk
+     check labels LOW, always labelled
+  5. otherwise "NOT ENOUGH EVIDENCE - ask a doctor before believing or sharing it"
+A plain sentence (no "fact check") is judged only by step 1, as in v1, so ordinary questions are never judged.
+```
+
+### Files
+
+| File | Job |
+|---|---|
+| `app/answer/factcheck.py` | `FactChecker.check()` (steps 1-5), `curated()`, `_judge()`, `_view()`; `FactResult.text()` (label + explanation + "Based on ..." line) and `.api()` (no confidence); labels in en/hi/hinglish incl. LIKELY MYTH |
+| `app/factcheck/verifier.py` | `use_embedder()` + per-model `MATCH_THRESHOLDS` (LaBSE values unchanged for v1); disease words added (chickenpox, arthritis, asthma, thyroid, kidney stone) |
+| `app/retrieval/embedders.py` | `E5Embedder.embed_queries()` ("query: " on both sides, for claim-to-myth matching) |
+| `app/answer/checks.py` | `remove_dose_sentences()`: one-paragraph explanations lose only the dose sentence |
+| `app/answer/trusted_web.py` | + `pib.gov.in` (PIB), `icmr.gov.in` (ICMR) |
+| `app/pipeline.py`, `app/main.py` | fact-check requests go to the v2 checker; v2 startup builds it with e5 and never loads LaBSE; API passes the v2 verdict through |
+| `web/chat.js`, `web/style.css` | route labels per basis; colours for PARTLY TRUE, NOT ENOUGH EVIDENCE, LIKELY MYTH; fixed an old bug where "PARTLY TRUE" (with a space) never got its colour |
+| `eval/factcheck_eval.py`, `tests/test_factcheck_v2.py` | 31-case evaluation; 12 tests with fakes |
+
+### What happened
+
+1. **e5 thresholds.** Known myths scored 0.90-0.98 with e5; "Onion in socks cures fever" wrongly reached 0.872 to
+   "Antibiotics cure fever", and "Haldi cures cancer" sat at 0.900. Set: similarity >= 0.885 with word overlap >= 0.25,
+   or >= 0.94 alone; plain sentences >= 0.885 and overlap >= 0.10.
+2. **Same remedy, different disease.** "Neem leaves cure diabetes" matched "neem cures chickenpox" because chickenpox
+   was missing from the verifier's disease words; added it and four more conditions (also helps v1).
+3. **Judge over-reach.** "Onion in socks" was called MYTH from library pages that never mention it; the judge prompt
+   now says "not mentioned = NOT_ENOUGH_EVIDENCE". It then went through the website and view steps.
+4. **Indian vs international.** "Measles vaccine at 9 months" (Hindi) was PARTLY TRUE because the WHO page mentions
+   12-15 months elsewhere; the prompt now prefers Indian national sources, but search returned only the WHO page for
+   this Hindi claim, so it stays PARTLY TRUE (its explanation does say India gives it at 9 months). Open point.
+5. **Dose sentences.** The zinc verdict (correctly TRUE, cited) lost its whole one-paragraph explanation to the
+   line-based dose check; explanations now lose only the dose sentence.
+6. **Government sites tested from the server** (6 myth queries): PIB 4/6, ICMR 5/6 (often PDFs, skipped), FSSAI 2/6
+   (licence pages), National Health Portal 2/6 (login pages), AYUSH 1/6. Added PIB and ICMR; AYUSH left out on
+   purpose (traditional-medicine research tends to support the remedy claims being checked).
+
+### Result (`eval/results/s5_factcheck.md`): 31 of 31 as expected
+
+- 22 fact-check claims (7 from v1 tests, 9 new false, 6 true; English, Hindi, Hinglish): all right. 14 answered by
+  the curated list (0-1 s), 6 by the library with citations (1-4 s), 1 by the model's labelled view (lemon water,
+  LIKELY MYTH, 8.5 s).
+- 6 plain myth sentences detected; 3 unknown plain claims correctly not judged.
+- Local start in v2: LaBSE not loaded; process 1.6 GB.
+
+### Open points
+
+- Curated explanations for Hinglish users are in Devanagari Hindi (as in v1); only en/hi texts exist.
+- The model-view and website steps take 8-15 s; curated and library verdicts take 0-4 s.
+- The v1 fact-checker (with LaBSE and live lookup) stays for `PIPELINE=v1` until S6.

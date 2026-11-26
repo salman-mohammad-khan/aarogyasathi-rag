@@ -72,6 +72,20 @@ def remove_dose_lines(text: str) -> str:
     return "\n".join(line for line in text.splitlines() if not _is_dose(line, about_vaccines)).strip()
 
 
+_SENTENCE_END = re.compile(r"(?<=[.!?।])\s+")
+
+
+def remove_dose_sentences(text: str) -> str:
+    """Like remove_dose_lines, but for one-paragraph text (fact-check explanations): drop only the sentences that
+    state a medicine amount or frequency. Removing the whole line would have deleted the whole explanation."""
+    about_vaccines = bool(_VACCINE.search(text))
+    kept = []
+    for line in text.splitlines():
+        sentences = [s for s in _SENTENCE_END.split(line) if s.strip()]
+        kept.append(" ".join(s for s in sentences if not _is_dose(s, about_vaccines)))
+    return "\n".join(kept).strip()
+
+
 def wrong_language(text: str, lang: str) -> bool:
     """Hindi answers must be mostly Devanagari; English and Hinglish answers must not be."""
     letters = [c for c in text if c.isalpha()]

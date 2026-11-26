@@ -81,7 +81,16 @@ function routeLabel(d) {
   if (d.intent === "guard") return "Instruction override blocked by a rule";
   if (d.intent === "emergency" && d.flow === "llm_safety") return "Safety check by the model (the word rules found nothing)";
   if (d.intent === "emergency") return "Safety rule, no LLM";
-  if (d.factcheck) return "Fact check against curated myths";
+  if (d.factcheck) {
+    const basis = {
+      curated: "Fact check: matched a curated, human-checked myth",
+      library: "Fact check against the official health library, with citations",
+      trusted_web: "Fact check against a trusted health website",
+      general: "Fact check: no source found; cautious general view, labelled",
+      none: "Fact check: no evidence found in any source",
+    }[d.factcheck.basis];
+    return basis || "Fact check against curated myths";
+  }
   if (d.generator === "llm") return "LLM, answering from the retrieved entry";
   if (d.generator === "template") return "Template answer, no LLM";
   if (d.intent === "fallback") return "Out of scope, politely declined";
@@ -183,7 +192,8 @@ function addBot(data) {
 
   const verdict = data.factcheck ? data.factcheck.verdict : null;
   if (verdict) {
-    const badge = el("span", "verdict-badge verdict-" + verdict);
+    // Labels can contain spaces ("PARTLY TRUE"), which would split into two CSS classes; use underscores.
+    const badge = el("span", "verdict-badge verdict-" + String(verdict).replace(/\s+/g, "_"));
     badge.textContent = verdict + (data.factcheck.fear_mongering ? " (context)" : "");
     bubble.appendChild(badge);
     bubble.appendChild(document.createElement("br"));
