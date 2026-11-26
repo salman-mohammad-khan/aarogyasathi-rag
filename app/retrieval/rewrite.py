@@ -34,7 +34,7 @@ hai hain kya kaise kyu kyun kab kaun kitna kitne kitni nahi nahin mujhe mera mer
 bhi aur wala wale wali chahiye karna kare karein karu raha rahi rahe hota hoti hote gaya gayi lagta lagti lagte
 ho jaye jana dena lena kuch bahut baar bachcha bachche bacche bimari dawai dawa ilaj ilaaj lakshan
 se par pe bache bachne bachao bachav kare karen karu upay ghar sakte sakta sakti me khaye khana khana peena
-piye pina kyon theek thik
+piye pina kyon theek thik liye kaunsi konsi kaunse konse lu lun loon
 """.split())
 
 

@@ -5,8 +5,10 @@
     3. instruction override          -> fixed refusal (rules; no model sees the text)
     4. fact-check request or a known myth -> v1 fact-check (moves onto the library in S5)
     5. greeting                      -> greeting
-    6. everything else               -> v2: follow-up joining -> search (S2) -> cited answer (S3)
-    In parallel with 6, the model safety check (Gemma) looks for emergencies the word rules missed; if it finds
+    6. "which medicine should I take" without a guideline disease, or for an antibiotic -> "a doctor must choose"
+    7. everything else               -> v2: follow-up joining -> search (S2) -> cited answer (S3)
+                                        -> if not covered: trusted website / labelled general info (S4b)
+    In parallel with 7, the model safety check (Gemma) looks for emergencies the word rules missed; if it finds
     one, its emergency reply replaces the answer.
 
 Steps 2-5 reuse the tested v1 safety code (app/core/safety.py, guard.py, safety_llm.py, factcheck/). Only step 6 is
@@ -16,6 +18,8 @@ deploy can be undone by changing one line).
 import re
 import time
 
+from app.answer import general
+from app.answer.chain import Answer
 from app.core import entities, guard, kb, language, safety, safety_llm
 from app.core.router import FACT_TRIGGERS, _model_safety_result
 from app.factcheck import verifier
@@ -147,9 +151,14 @@ def process_message(text: str, session, answerer, outside=None) -> dict:
     if reply is None:
         question = with_context(text, session)
         lang = question_language(text)
-        answer = answerer.answer(question, lang=lang)
-        if answer.status == "not_covered" and outside is not None:
-            answer = outside.answer(question, lang, answer.query, answer)
+        if general.medicine_choice_needs_doctor(question):
+            # "which medicine for my headache" / "which antibiotic": never chosen by the bot, from any tier.
+            answer = Answer(question=question, language=lang, text=general.CHOOSE_MEDICINE[lang],
+                            status="medicine_choice", tier="none")
+        else:
+            answer = answerer.answer(question, lang=lang)
+            if answer.status == "not_covered" and outside is not None:
+                answer = outside.answer(question, lang, answer.query, answer)
         session.set("last_question", question[:300])
         session.set("last_question_at", time.time())
         text_out = answer.text
