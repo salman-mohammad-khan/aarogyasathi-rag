@@ -8,6 +8,7 @@ Safety: the rewrite only changes what is SEARCHED. The answer is still written f
 language. Whenever the rewrite fails, is slow, or does not come back in English, the original question is used.
 """
 import re
+from functools import lru_cache
 
 # Everyday Hindi words for illnesses (S2 test: both rewrite models got these wrong without help).
 GLOSSARY = ("loo / लू = heat stroke; dast / दस्त = diarrhoea; ulti / उल्टी = vomiting; bukhar / बुखार = fever; "
@@ -85,3 +86,10 @@ def to_english(question: str, ask=_call_model) -> str:
     if not english or len(english) > MAX_REWRITE_CHARS or needs_rewrite(english):
         return question  # empty, too long, or still Hindi/Hinglish: search with what the user typed
     return english
+
+
+@lru_cache(maxsize=512)
+def to_english_cached(question: str) -> str:
+    """`to_english` with a memory of recent questions: when the library has no answer and the trusted-website
+    search runs next, the same English rewrite is reused instead of calling the model twice."""
+    return to_english(question)

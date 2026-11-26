@@ -57,6 +57,13 @@ def test_life_threatening_emergencies_get_no_library_text(run):
     assert run.answerer.calls == []
 
 
+@pytest.mark.parametrize("text, lang", [("I feel sad and hopeless every day", "en"),
+                                        ("bahut tension rehti hai aajkal", "hinglish"), ("मैं हमेशा उदास रहता हूँ", "hi")])
+def test_low_mood_answers_add_tele_manas(run, text, lang):
+    reply = run(text)
+    assert reply["meta"]["intent"] == "library_answer" and reply["text"].endswith(pipeline.TELE_MANAS[lang])
+
+
 def test_self_harm_gets_the_helpline(run):
     reply = run("I want to kill myself")
     assert reply["meta"]["intent"] == "emergency" and "14416" in reply["text"]

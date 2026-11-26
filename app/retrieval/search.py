@@ -17,7 +17,7 @@ import numpy as np
 from app.retrieval.fusion import reciprocal_rank_fusion
 from app.retrieval.index import COLLECTION, INDEX_DIR
 from app.retrieval.keyword import KeywordIndex
-from app.retrieval.rewrite import to_english
+from app.retrieval.rewrite import to_english_cached
 
 TOP_K = 5
 CANDIDATES = 50  # how many results each method passes to the fusion step
@@ -31,7 +31,7 @@ class SearchResult:
 
 
 class Searcher:
-    def __init__(self, index_dir=INDEX_DIR, embedder=None, use_bm25: bool = True, rewrite=to_english):
+    def __init__(self, index_dir=INDEX_DIR, embedder=None, use_bm25: bool = True, rewrite=to_english_cached):
         from qdrant_client import QdrantClient
 
         from app.retrieval.embedders import E5Embedder

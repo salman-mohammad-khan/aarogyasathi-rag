@@ -71,7 +71,9 @@ function parseReply(text) {
 
 function routeLabel(d) {
   if (d.intent === "library_answer") {
-    if (d.flow === "not_covered") return "Not in the health library, so no answer was made up";
+    if (d.tier === "trusted_web") return "Not in the library; answered from a trusted health website, with its link";
+    if (d.tier === "general") return "Not in the library or trusted websites; low-risk general information, labelled";
+    if (d.flow === "not_covered") return "Not in the library or trusted websites, so no answer was made up";
     if (d.flow === "dose_removed") return "Library answer (medicine amounts removed for safety)";
     if (d.flow === "error") return "The answer model did not respond";
     return "Answered from the official health library, with citations";
@@ -130,12 +132,23 @@ function tidyMarkdown(text) {
     .trim();
 }
 
+// Where a v2 answer came from (S4b). Shown on top of the answer so the user knows how far to trust it.
+const TIER_LABELS = {
+  library: "From the official health library",
+  trusted_web: "From a trusted health website (not my library)",
+  general: "General information, not from a verified source",
+};
+
 // v2 answers cite numbered sources: "[1] National Guidelines for Dengue 2023, page 47" with a link to the PDF.
 function buildCitations(sources) {
   const box = el("div", "citations");
   box.appendChild(el("div", "citations-title", "Sources"));
   const list = el("ol", "citations-list");
+  const seen = new Set(); // a web page cited as [1]..[4] is listed once
   for (const s of sources) {
+    const key = s.url + "|" + (s.page || "");
+    if (seen.has(key)) continue;
+    seen.add(key);
     const item = el("li");
     item.value = s.n;
     const label = s.title + (s.page ? ", page " + s.page : "");
@@ -175,6 +188,8 @@ function addBot(data) {
     bubble.appendChild(badge);
     bubble.appendChild(document.createElement("br"));
   }
+  const tier = TIER_LABELS[data.tier];
+  if (tier) bubble.appendChild(el("div", "tier-label tier-" + data.tier, tier));
   bubble.appendChild(document.createTextNode(tidyMarkdown(parsed.body)));
 
   if (Array.isArray(data.sources) && data.sources.length) {

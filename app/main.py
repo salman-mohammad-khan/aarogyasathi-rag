@@ -46,10 +46,12 @@ class ChatResponse(BaseModel):
     factcheck: dict | None = None
     pipeline: str = "v1"
     sources: list[dict] = []  # v2: the documents and pages the answer cites
+    tier: str | None = None  # v2: library | trusted_web | general | none
 
 
 _started = False
 _answerer = None  # v2: search index + answer chain, built once at startup
+_outside = None  # v2 (S4b): trusted website and general-information tiers
 
 
 def _build_answerer():
@@ -66,7 +68,7 @@ def _build_answerer():
 
 @app.on_event("startup")
 def startup():
-    global _started, _answerer
+    global _started, _answerer, _outside
     if _started:
         return
     _started = True
@@ -76,6 +78,9 @@ def startup():
     embeddings.get_model()
     if config.PIPELINE == "v2":
         _answerer = _build_answerer()
+        from app.answer.outside import OutsideLibrary
+
+        _outside = OutsideLibrary()
     else:
         intent.load()
         retriever._ensure_index()
@@ -126,7 +131,7 @@ def chat(req: ChatRequest):
     start = time.time()
     session = session_store.get_session(req.session_id)
     if config.PIPELINE == "v2":
-        result = pipeline.process_message(req.message, session, _answerer)
+        result = pipeline.process_message(req.message, session, _answerer, _outside)
     else:
         result = process_message(req.message, None, session)
         history = session.get("history") or []
@@ -164,6 +169,7 @@ def chat(req: ChatRequest):
         factcheck=factcheck,
         pipeline=config.PIPELINE,
         sources=meta.get("sources") or [],
+        tier=meta.get("tier"),
     )
 
 

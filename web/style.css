@@ -163,6 +163,15 @@ a:hover { text-decoration: underline; }
 }
 .disclaimer-line { margin-top: 8px; font-size: 11.5px; color: var(--faint); line-height: 1.4; }
 
+/* v2 (S4b): where the answer came from */
+.tier-label {
+  display: block; width: fit-content; max-width: 100%; margin-bottom: 6px; padding: 2px 9px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; white-space: normal;
+}
+.tier-library { background: #1c4433; color: #7ae8b0; }
+.tier-trusted_web { background: #1c3550; color: #9cc9ff; }
+.tier-general { background: #4a3d1c; color: #ffd98a; }
+
 /* v2: numbered citations under a library answer */
 .citations { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); }
 .citations-title { font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
