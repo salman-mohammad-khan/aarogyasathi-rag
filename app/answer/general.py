@@ -54,6 +54,30 @@ GENERAL_NOTE = {
 }
 
 
+# "Which antibiotic should I take", "best tablet for headache", "kaunsi dawai lu", "कौन सी दवा लें": the person wants
+# a medicine chosen for them. Outside the library this is never answered (middle rule: no choosing medicines).
+_WHICH_MEDICINE = re.compile(
+    r"\b(which|best|good)\b.{0,30}\b(antibiotic|medicine|medication|tablet|pill|capsule|syrup|drug|cream|"
+    r"ointment)s?\b|\b(antibiotic|medicine|tablet|pill|drug)s?\b.{0,20}\b(should i|to take|to buy|best)\b|"
+    r"\b(kaunsi|kaun si|konsi|kon si|kya)\b.{0,15}\b(dawai|dawa|davai|goli|tablet|medicine|antibiotic)\b|"
+    r"\b(dawai|dawa|goli|tablet|antibiotic)\b.{0,20}\b(lu|loon|lun|le sakta|le sakti|kharidu|kaunsi)\b|"
+    r"कौन\s*सी\s*(दवा|दवाई|गोली)|कौनसी\s*(दवा|दवाई|गोली)|(दवा|दवाई|गोली)\s*(लूं|लूँ|लू|लें)", re.IGNORECASE)
+CHOOSE_MEDICINE = {
+    "en": "Which medicine is right depends on the cause, your age, weight and health, so it must be chosen by a doctor "
+          "after checking you. Please do not buy antibiotics or other medicines on your own. Visit your PHC or ask "
+          "your ASHA worker. In an emergency, call 108.",
+    "hi": "कौन सी दवा सही है, यह बीमारी की वजह, आपकी उम्र, वज़न और सेहत पर निर्भर करता है, इसलिए डॉक्टर जाँच के बाद ही "
+          "दवा तय करें। कृपया एंटीबायोटिक या कोई भी दवा खुद से न खरीदें। PHC जाएँ या आशा दीदी से पूछें। आपात स्थिति में 108 पर कॉल करें।",
+    "hinglish": "Kaunsi dawai sahi hai, yeh bimari ki wajah, aapki umar, wajan aur sehat par depend karta hai, isliye "
+                "doctor check karke hi dawai tay kare. Antibiotic ya koi bhi dawai khud se na khareedein. PHC jaayein "
+                "ya ASHA didi se poochhein. Emergency mein 108 par call karein.",
+}
+
+
+def asks_which_medicine(text: str) -> bool:
+    return bool(_WHICH_MEDICINE.search(text or ""))
+
+
 def risk_label(question: str, english: str, ask_risk) -> str:
     """"NOT_HEALTH", "HIGH" or "LOW". The rules decide HIGH without a model call; otherwise Gemma labels it, and an
     unclear reply or an error counts as HIGH. `english` is the search rewrite, so Hindi is checked in English too."""
