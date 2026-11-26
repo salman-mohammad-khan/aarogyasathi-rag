@@ -329,6 +329,7 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 | 2026-11-26 01:38 | Removed files deleted in S0 that the upload had left on the server: `web/admin.css`, `web/admin.html`, `web/admin.js`, `app/surveillance/` | They were still served (`/static/admin.html`) | `/static/admin.html` now 404 | in the deploy backup |
 | 2026-11-26 ~10:28 | Installed trafilatura 2.4.0 and langchain-text-splitters 1.2.0 (+ courlan, htmldate, dateparser, lxml, pytz, tzlocal) into the portfolio venv with `python -m pip`; this also upgraded urllib3 to 2.8.0 and charset-normalizer to 3.5.3 there | S4b trusted-website answers | Group venv checked: no trafilatura, no qdrant_client | `python -m pip install urllib3==<old>` from the deploy backup's requirements |
 | 2026-11-26 10:31 | Deployed commit `9a4754e` (S4b) | trusted-website and general tiers | Healthy; live checks: pimples -> MedlinePlus, wet hair -> labelled general answer, poem declined in 1.2 s, low mood -> model safety check gave the Tele-MANAS reply; but an antibiotic was named from a CDC page for clinicians (fixed next) | backup `/opt/healthbot-backups/pre-9a4754e-20261126-103118.tgz` |
+| 2026-11-26 10:39 | Deployed commit `06a8123` (S4b fix: no medicine choice outside the library, clinician pages skipped) | live check found an antibiotic named from a CDC page for clinicians | Healthy; antibiotic question -> "a doctor must choose" (1.1 s); pimples -> MedlinePlus; wet hair -> labelled general answer; capital of India declined (0.9 s); group copy 200; 4.9 GB RAM free | backup `/opt/healthbot-backups/pre-06a8123-20261126-103940.tgz` |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
@@ -581,3 +582,29 @@ from `requirements-ingest.txt` to `requirements.txt`.
   answering from a cloud server.
 - International sites name medicines (minoxidil, antacids) without amounts: allowed by the middle rule.
 - Tier 3 has not been seen live yet.
+
+---
+
+## Medicine-choice questions everywhere (2026-11-26, after S4b)
+
+**Problem.** "sar dard ke liye kaunsi dawai lu" (which medicine for a headache) was answered from the library with
+"paracetamol le sakte hain", citing the **dengue** guideline: a disease-specific page stretched to a general symptom.
+The S4b "a doctor must choose" reply only applied outside the library.
+
+**Decision (his, on my recommendation).** Decide by whether the person names a disease with national public
+guidance in the library:
+
+| Question | Reply |
+|---|---|
+| names dengue, chikungunya, malaria, TB, diarrhoea, heat stroke or anaemia, and no antibiotic is asked for | library answer as before (e.g. dengue: paracetamol, never aspirin or ibuprofen) |
+| only a symptom or no disease ("sar dard", "khansi ki best tablet", "bukhar ke liye kaunsi goli"), or any antibiotic, BP, sugar, PCOS medicine | fixed "a doctor must choose; do not buy antibiotics yourself" reply, without searching |
+
+Antibiotics are always referred (prescription-only; self-medication breeds resistance), even with a named disease
+("which antibiotic for typhoid"). Outside the library nothing changes: no website or general answer ever picks a
+medicine. A follow-up can supply the disease ("dengue ke lakshan?" then "aur iske liye kaunsi dawai?").
+
+**Code.** `general.medicine_choice_needs_doctor()` (`GUIDANCE_DISEASES`, chikungunya aliases, antibiotic words),
+checked in `pipeline.process_message` before the library search (reply status `medicine_choice`, tier `none`).
+Hinglish word list widened again ("liye", "kaunsi", "lu"...) after "dast ke liye kaunsi antibiotic lu" was read as
+English; all 151 test questions still detected right. Tests: 20 hand-picked questions routed right; 11 new pipeline
+tests; full suite 644 passed.

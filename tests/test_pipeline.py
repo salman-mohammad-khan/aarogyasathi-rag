@@ -137,3 +137,31 @@ def test_v2_is_the_default_pipeline_and_the_api_returns_sources():
 
     assert config.PIPELINE in ("v1", "v2")
     assert "sources" in ChatResponse.model_fields and "pipeline" in ChatResponse.model_fields
+
+
+# --- medicine choice (decided 2026-11-26) ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("text, lang", [
+    ("sar dard ke liye kaunsi dawai lu", "hinglish"), ("khansi ki best tablet", "en"),
+    ("Which antibiotic should I take for typhoid?", "en"), ("dast ke liye kaunsi antibiotic lu", "hinglish"),
+    ("सिर दर्द के लिए कौन सी दवा लें?", "hi"), ("which medicine for high BP", "en"),
+])
+def test_medicine_choice_without_a_guideline_disease_goes_to_a_doctor(run, text, lang):
+    from app.answer.general import CHOOSE_MEDICINE
+
+    reply = run(text)
+    assert reply["text"] == CHOOSE_MEDICINE[lang] and reply["meta"]["flow"] == "medicine_choice"
+    assert run.answerer.calls == []  # the library is not even searched
+
+
+@pytest.mark.parametrize("text", ["dengue me bukhar ke liye kaunsi dawai le sakte hain", "TB ki dawai kaunsi hai",
+                                  "चिकनगुनिया में दर्द के लिए कौन सी दवा लें", "which tablet for diarrhoea in child"])
+def test_medicine_questions_about_a_guideline_disease_use_the_library(run, text):
+    reply = run(text)
+    assert reply["meta"]["intent"] == "library_answer" and run.answerer.calls
+
+
+def test_follow_up_can_name_the_disease_for_a_medicine_question(run):
+    run("What are the symptoms of dengue?")
+    run("aur iske liye kaunsi dawai le sakte hain?")
+    assert run.answerer.calls[-1][0].startswith("What are the symptoms of dengue?")

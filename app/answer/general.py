@@ -78,6 +78,29 @@ def asks_which_medicine(text: str) -> bool:
     return bool(_WHICH_MEDICINE.search(text or ""))
 
 
+# Diseases whose national guidelines in the library give public medicine advice ("dengue: paracetamol, never
+# aspirin or ibuprofen", "TB: complete the course", "diarrhoea: ORS and zinc"). A medicine question that names one of
+# these is answered from the library; any other medicine-choice question is referred to a doctor (decided 2026-11-26).
+GUIDANCE_DISEASES = {"dengue", "malaria", "diarrhoea", "tuberculosis", "heatstroke", "anaemia"}
+_CHIKUNGUNYA = re.compile(r"chikun\w*|chikan\w*|चिकनगुनिया|चिकुनगुनिया", re.IGNORECASE)
+_ANTIBIOTIC = re.compile(r"antibiotic|antibiotik|एंटीबायोटिक|एंटीबायोटिक्स", re.IGNORECASE)
+
+
+def medicine_choice_needs_doctor(text: str) -> bool:
+    """True when someone asks which medicine to take and the library must not answer it:
+    - no disease with national guidance is named ("sar dard ke liye kaunsi dawai lu", "khansi ki best tablet"), or
+    - an antibiotic is asked for (prescription only, and self-medication breeds resistance), whatever the disease.
+    "dengue me bukhar ke liye kaunsi dawai" names dengue, so the library answers (paracetamol yes, aspirin no)."""
+    if not asks_which_medicine(text):
+        return False
+    if _ANTIBIOTIC.search(text):
+        return True
+    from app.core import entities
+
+    named = entities.find_disease(text) in GUIDANCE_DISEASES or bool(_CHIKUNGUNYA.search(text))
+    return not named
+
+
 def risk_label(question: str, english: str, ask_risk) -> str:
     """"NOT_HEALTH", "HIGH" or "LOW". The rules decide HIGH without a model call; otherwise Gemma labels it, and an
     unclear reply or an error counts as HIGH. `english` is the search rewrite, so Hindi is checked in English too."""
