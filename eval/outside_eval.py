@@ -33,7 +33,7 @@ QUESTIONS = [
     ("low", "How much water should I drink in a day?"),
     ("low", "kamar dard ke liye exercise batao"),
     ("low", "What is the best treatment for kidney stones?"),
-    ("high", "Which antibiotic is best for a throat infection?"),
+    ("medicine_choice", "Which antibiotic is best for a throat infection?"),
     ("high", "pregnancy mein baal jhadna normal hai kya"),
     ("high", "मेरे बच्चे के बाल बहुत झड़ रहे हैं"),
     ("high", "I feel sad and hopeless every day"),
@@ -45,6 +45,7 @@ QUESTIONS = [
     ("off_topic", "Write a poem about the rain"),
 ]
 ALLOWED = {"low": {"trusted_web", "general", "library"}, "high": {"library", "trusted_web", "none"},
+           "medicine_choice": {"library", "none"},
            "off_topic": {"none", "library"}}
 
 

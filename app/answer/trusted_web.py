@@ -37,9 +37,18 @@ CHUNK_CHARS, CHUNK_OVERLAP, TOP_CHUNKS = 1200, 180, 5
 USER_AGENT = "Mozilla/5.0 (compatible; AarogyaSathi health assistant; +https://aarogyasathi.nova-care.xyz)"
 
 
+# Pages written for doctors and nurses (e.g. CDC "/hcp/" clinical guidance) give treatment choices meant for a
+# clinician; the live S4b check answered "Which antibiotic is best for a throat infection?" from one. Not used.
+_PROFESSIONAL_PATH = ("/hcp/", "/health-professionals", "/clinicians", "/clinical-guidance", "/professionals/")
+
+
 def publisher(url: str) -> str | None:
-    """The trusted publisher of a URL, or None if the site is not on the list (subdomains count: www.nhs.uk)."""
-    host = urlparse(url).netloc.lower().split(":")[0]
+    """The trusted publisher of a URL, or None if the site is not on the list (subdomains count: www.nhs.uk) or the
+    page is written for health professionals."""
+    parsed = urlparse(url)
+    if any(p in parsed.path.lower() for p in _PROFESSIONAL_PATH):
+        return None
+    host = parsed.netloc.lower().split(":")[0]
     for domain, name in TRUSTED_SITES.items():
         if host == domain or host.endswith("." + domain):
             return name

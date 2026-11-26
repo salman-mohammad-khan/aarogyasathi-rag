@@ -32,6 +32,10 @@ class OutsideLibrary:
 
     def answer(self, question: str, lang: str, english: str, library: Answer) -> Answer:
         """Called only when the library answer is "not covered"; returns the best labelled answer, or `library`."""
+        if general.asks_which_medicine(question) or general.asks_which_medicine(english):
+            # "Which antibiotic is best?": choosing a medicine is a doctor's job (middle rule), so no website or general
+            # answer is searched for it.
+            return replace(library, text=general.CHOOSE_MEDICINE[lang], status="not_covered", tier="none")
         label = general.risk_label(question, english, self.ask_risk)  # one short Gemma call, ~0.5 s
         if label == "NOT_HEALTH":  # "write a poem", "capital of India": no web search, no general answer
             return replace(library, text=NOT_COVERED[lang], status="not_covered", tier="none")

@@ -130,8 +130,30 @@ def test_general_answer_only_for_low_risk_when_the_web_has_nothing():
     out = OutsideLibrary(FakeWebAnswerer(LIBRARY_MISS), general_llm=llm, ask_risk=lambda p: "LOW")
     result = out.answer("how to reduce dandruff", "en", "how to reduce dandruff", LIBRARY_MISS)
     assert result.tier == "general" and result.text.endswith(general.GENERAL_NOTE["en"])
-    risky = out.answer("which tablet for dandruff", "en", "which tablet for dandruff", LIBRARY_MISS)
+    risky = out.answer("dandruff during pregnancy", "en", "dandruff during pregnancy", LIBRARY_MISS)
     assert risky.tier == "none" and risky.text == NOT_COVERED["en"]
+
+
+def test_pages_for_health_professionals_are_not_used():
+    assert publisher("https://www.cdc.gov/group-a-strep/hcp/clinical-guidance/strep-throat.html") is None
+    assert publisher("https://www.cdc.gov/group-a-strep/about/strep-throat.html") == "CDC (US)"
+
+
+@pytest.mark.parametrize("question", ["Which antibiotic is best for a throat infection?", "kaunsi dawai lu bukhar ke liye",
+                                      "सर दर्द के लिए कौन सी दवा लें?", "best tablet for headache"])
+def test_choosing_a_medicine_is_never_answered_outside_the_library(question):
+    class NoWeb:
+        def answer(self, question, lang=None):
+            raise AssertionError("no web search when a medicine is to be chosen")
+
+    out = OutsideLibrary(NoWeb(), general_llm=None, ask_risk=lambda p: "LOW")
+    lang = "hi" if "दवा" in question else ("hinglish" if "dawai" in question else "en")
+    result = out.answer(question, lang, question, LIBRARY_MISS)
+    assert result.tier == "none" and result.text == general.CHOOSE_MEDICINE[lang]
+
+
+def test_side_effect_questions_are_not_medicine_choices():
+    assert not general.asks_which_medicine("what are the side effects of iron tablets")
 
 
 def test_non_health_questions_skip_the_web_search():
