@@ -53,6 +53,14 @@ def test_bites_and_heat_stroke_keep_the_emergency_reply_and_add_cited_first_aid(
     assert reply["text"].index("108") < reply["text"].index("Use bed nets [1].")  # emergency first, first aid after
 
 
+def test_first_aid_is_asked_as_a_question_in_the_users_language(run):
+    # A bare report ("kutte ne kaat liya") was answered "not covered" by the library in S6 testing; it is now asked as
+    # a first-aid question, and the answer stays in Hinglish.
+    run("kutte ne kaat liya")
+    question, lang = run.answerer.calls[-1]
+    assert question == "kutte ne kaat liya. What first aid should be given right now?" and lang == "hinglish"
+
+
 def test_life_threatening_emergencies_get_no_library_text(run):
     run("my baby is not breathing")
     run("he had a stroke, face drooping and cannot speak")

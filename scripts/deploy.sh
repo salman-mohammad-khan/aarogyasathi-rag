@@ -88,7 +88,8 @@ echo "2/4 Upload"
 git archive --format=tar HEAD -- "${PATHS[@]}" | "${SSH[@]}" "sudo tar -x -C '$APP_DIR'"
 if [ -d "$INDEX_PATH" ]; then
   echo "    search index $INDEX_PATH ($(du -sh "$INDEX_PATH" | cut -f1))"
-  tar -czf - "$INDEX_PATH" | "${SSH[@]}" "sudo rm -rf '$APP_DIR/$INDEX_PATH' && sudo tar -xz -C '$APP_DIR'"
+  # .lock belongs to whichever local process has the index open (Windows keeps it busy); never upload it.
+  tar --exclude=.lock -czf - "$INDEX_PATH" | "${SSH[@]}" "sudo rm -rf '$APP_DIR/$INDEX_PATH' && sudo tar -xz -C '$APP_DIR'"
 fi
 
 LOCAL_REQ="$(git show HEAD:requirements.txt | sha256sum | cut -d' ' -f1)"

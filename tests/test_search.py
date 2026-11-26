@@ -21,6 +21,7 @@ def test_english_questions_are_not_sent_to_the_model():
 def test_hindi_and_hinglish_are_detected():
     assert needs_rewrite("डेंगू के लक्षण क्या हैं?")
     assert needs_rewrite("dengue ke lakshan kya hote hain")
+    assert needs_rewrite("kutte ne kaat liya")  # short reports: words added in S6
     assert not needs_rewrite("Is ORS safe for a baby?")
 
 

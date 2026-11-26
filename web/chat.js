@@ -75,11 +75,13 @@ function routeLabel(d) {
     if (d.tier === "general") return "Not in the library or trusted websites; low-risk general information, labelled";
     if (d.flow === "not_covered") return "Not in the library or trusted websites, so no answer was made up";
     if (d.flow === "dose_removed") return "Library answer (medicine amounts removed for safety)";
+    if (d.flow === "medicine_choice") return "Choosing a medicine is a doctor's job, so the bot refers you";
     if (d.flow === "error") return "The answer model did not respond";
     return "Answered from the official health library, with citations";
   }
   if (d.intent === "guard") return "Instruction override blocked by a rule";
   if (d.intent === "emergency" && d.flow === "llm_safety") return "Safety check by the model (the word rules found nothing)";
+  if (d.intent === "emergency" && d.flow === "emergency_first_aid") return "Safety rule first, then cited first aid from the library";
   if (d.intent === "emergency") return "Safety rule, no LLM";
   if (d.factcheck) {
     const basis = {
@@ -91,10 +93,7 @@ function routeLabel(d) {
     }[d.factcheck.basis];
     return basis || "Fact check against curated myths";
   }
-  if (d.generator === "llm") return "LLM, answering from the retrieved entry";
-  if (d.generator === "template") return "Template answer, no LLM";
-  if (d.intent === "fallback") return "Out of scope, politely declined";
-  if (d.flow && String(d.flow).startsWith("symptom")) return "Symptom flow, follow-up question";
+  if (d.intent === "greeting") return "Greeting";
   return "Rule-based reply";
 }
 

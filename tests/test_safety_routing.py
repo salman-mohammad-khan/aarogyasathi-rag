@@ -290,3 +290,15 @@ def test_widened_self_harm_wordings_get_the_mental_health_helpline(text):
 def test_questions_about_an_emergency_topic_are_not_answered_as_emergencies(text):
     r = ask(text, _fresh_session("sr_info_question"))
     assert r["meta"]["intent"] != "emergency"
+
+
+def test_a_dog_bite_fact_check_is_checked_below_the_emergency_reply(fact_check_spy):
+    # S6 final evaluation: the reply asked to "send the claim again on its own", which hit the same bite rule again.
+    reply = ask("fact check: washing a dog bite with soap and water for 15 minutes helps prevent rabies")
+    assert fact_check_spy and reply["meta"]["intent"] == "fact_check" and reply["meta"]["route"] == "emergency_fact_check"
+    assert reply["text"].index("108") < reply["text"].index("Not true [1].")
+
+
+def test_a_life_threatening_emergency_with_fact_check_words_is_not_checked(fact_check_spy):
+    reply = ask("fact check: my father is not breathing")
+    assert reply["meta"]["intent"] == "emergency" and not fact_check_spy
