@@ -332,6 +332,9 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 | 2026-11-26 10:39 | Deployed commit `06a8123` (S4b fix: no medicine choice outside the library, clinician pages skipped) | live check found an antibiotic named from a CDC page for clinicians | Healthy; antibiotic question -> "a doctor must choose" (1.1 s); pimples -> MedlinePlus; wet hair -> labelled general answer; capital of India declined (0.9 s); group copy 200; 4.9 GB RAM free | backup `/opt/healthbot-backups/pre-06a8123-20261126-103940.tgz` |
 | 2026-11-27 00:01 | Deployed commit `db0adc3` (medicine-choice rule everywhere) | "which medicine for my headache" was answered from the dengue guideline | Live: headache (Hinglish, Hindi) and "which antibiotic for typhoid" -> "a doctor must choose" in 1-2.5 s; dengue medicine question -> library answer (paracetamol, amount from ASHA/doctor); TB medicine question lists the standard TB drugs from the guideline without amounts; group copy 200; ~5 GB RAM free | backup `/opt/healthbot-backups/pre-db0adc3-20261127-000109.tgz` |
 | 2026-11-27 00:43 | Deployed commit `7b8aead` (S5) | fact-check on the library, no LaBSE in v2 | Healthy; LaBSE not in the process (only e5 mapped); available RAM 4.93 -> 5.04 GB; live: papaya -> curated PARTLY TRUE, ORS-vomit -> library MYTH with citation, plain "lehsun ... dengue" -> curated MYTH, lemon water -> labelled LIKELY MYTH, no confidence shown; but a malaria claim got the BP myth's explanation (fixed next) | backup `/opt/healthbot-backups/pre-7b8aead-20261127-004301.tgz` |
+| 2026-11-27 ~01:15 | **Failed deploy, no harm:** commit `1e8dc0c` (S6 v1 removal); the index upload stopped on the Qdrant `.lock` file, which Windows keeps busy while the local index is open | - | The new code files were on the server but the service was never restarted, so v1-removal code was not running; site stayed on `0160806` and healthy | deploy.sh now excludes `.lock` (`1419bd9`) |
+| 2026-11-27 01:18 | Deployed commit `1419bd9` (S6 v1 removal + deploy fix) | v2 only, no `PIPELINE` switch | Healthy; `/api/health` shows Qwen + Gemma fallback, 3,265 chunks; portfolio process ~2.0 GB, ~5 GB RAM available; group copy 200 | backup `/opt/healthbot-backups/pre-1419bd9-20261127-011839.tgz` |
+| 2026-11-27 ~01:25 | Deleted v1 files the upload leaves behind in `/opt/healthbot-mine`: `app/core/router.py`, `intent.py`, `relevance.py`, `retriever.py`, `websearch.py`, `embeddings.py`, `generator.py`, `data/kb/diseases.json`, `faq.json`, `vaccines.json`, `data/training/`; `PIPELINE=v2` line no longer read | they were dead code on the server | Health 200 after | in the `pre-1419bd9` backup |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
@@ -685,3 +688,82 @@ A plain sentence (no "fact check") is judged only by step 1, as in v1, so ordina
 - Curated explanations for Hinglish users are in Devanagari Hindi (as in v1); only en/hi texts exist.
 - The model-view and website steps take 8-15 s; curated and library verdicts take 0-4 s.
 - The v1 fact-checker (with LaBSE and live lookup) stays for `PIPELINE=v1` until S6.
+
+---
+
+## S6: finish v2 (2026-11-27)
+
+**Goal.** Final measurement on new messages, remove the v1 code, and make the repository, landing page and demo
+describe v2. Decided by him: all existing test sets plus 50 fresh end-to-end messages; tag first, then delete v1; full
+README rewrite with results and limitations (origin note kept); new screenshots and a demo video made by me; landing
+page with measured numbers; resume bullets drafted for his approval; GitHub description and topics updated.
+
+### Removed (all recoverable from the tag `v2.0-with-v1-fallback`)
+
+| What | Why it could go |
+|---|---|
+| `app/core/router.py`, `intent.py`, `relevance.py`, `retriever.py`, `websearch.py`, `embeddings.py`, `generator.py` | v1 router, TF-IDF intents, LaBSE search, live web lookup and template answers; v2 replaces each (pipeline, e5 + BM25, trusted web tier, LCEL chain) |
+| `data/kb/diseases.json`, `faq.json`, `vaccines.json`, `data/training/` | the v1 knowledge base and intent training data; v2 answers from the 34 documents |
+| `scripts/build_index.py`, `eval.py`, `smoke_test.py`, `test_cloud.py`, `safety_llm_eval.py` | v1 index, eval and smoke scripts; deploy.sh has its own v2 smoke test |
+| `PIPELINE` setting, `pipeline` field of `/api/chat`, LaBSE thresholds, confidence score | only v2 is left |
+| v1 tests | the ones still meaningful were ported to the v2 pipeline (below) |
+
+**Ported, not lost:** the safety routing, guard, model safety check, curated myth matching, WhatsApp and Meta webhook
+tests now run through `app.pipeline.process_message` with a fake answerer and fact-checker
+(`tests/pipeline_helpers.py`). The model safety check moved to LangChain (`ChatBedrockConverse`, Gemma 3 27B).
+
+### Final evaluation
+
+New files: `eval/golden_final.yaml` (50 messages written for S6, not used for any earlier choice: 15 questions to
+answer, 12 emergencies, 8 dose questions, 8 fact-checks, 7 to decline; English, Hindi, Hinglish) and
+`eval/final_eval.py` (runs them through `app.main.answer_message`, the same function the web chat uses, scores the
+production search on both retrieval sets and collects the S3, S4b and S5 results into
+`eval/results/FINAL_RESULTS.md`).
+
+**Run 1 (before fixes): 47 of 50** (`eval/results/FINAL_RESULTS_run1_before_fixes.md`). The three misses:
+
+1. **f05, a real bug:** "kya ye sach hai: dengue ek insaan se dusre insaan ko chhoone se failta hai" (a myth) got
+   **VERIFIED** from the curated "Aedes mosquitoes transmit dengue" entry (e5 similarity 0.93). Checking it found a
+   second case: "TB spreads through the air when a patient coughs" (true) got **MYTH** from the "TB spreads by touch"
+   myth. Embeddings do not separate how a disease spreads. Fix: a spread-route conflict check (touch, air, mosquito,
+   water/food, blood; English, Hindi, Hinglish) next to the disease and remedy checks; such claims now go to the
+   library judge. 3 tests.
+2. **f08, a loop:** "fact check: washing a dog bite with soap and water ... prevents rabies" hit the dog-bite emergency
+   rule, whose reply says "send the claim again on its own", which would hit the same rule again. Fix: for bite
+   emergencies (the ones that get first aid) with fact-check words, the claim is checked and shown below the
+   emergency reply. Life-threatening emergencies still never reach the fact-checker. 2 tests.
+3. **q10, not fixed:** "Is the rabies vaccine free at government hospitals?" -> "not covered". The library does not
+   say it (checked), and the website search returned nothing that run. Same cause as the one beyond-library miss
+   below: free search engines sometimes return nothing (re-tested: one run empty, the next found MedlinePlus).
+
+Also fixed during S6: "kutte ne kaat liya" was not detected as Hinglish and the first-aid lookup got "not covered";
+Hinglish words added and the first-aid lookup is phrased as a question (2 tests).
+
+**Run 2 (after the fixes): 49 of 50** (`eval/results/FINAL_RESULTS.md`). This set is no longer unseen after the fixes,
+so both runs are reported.
+
+| Measure | Result |
+|---|---|
+| End to end, 50 new messages | 49/50 (answer 14/15, emergency 12/12, dose 8/8, fact-check 8/8, decline 7/7); median 1.3 s |
+| Medicine amounts shown | 0 |
+| Production search, 30 fresh hard questions | hit@5 0.97, MRR@10 0.78 (Hindi 0.88: one question) |
+| Production search, 81 questions | hit@5 1.00, MRR@10 0.86 |
+| Answers (S3 set, 40 questions, Qwen3-235B) | 100% expected outcome; faithfulness DeepSeek 98% / Mistral 100%; $0.67 per 1,000 |
+| Beyond the library (S4b set, rerun) | 19/20: "best treatment for kidney stones" got "not covered" because the web search returned nothing; re-tested: one run empty, the next found MedlinePlus. Risk label HIGH, so no general answer (correct) |
+| Fact-check (S5 set, rerun after the route fix) | 32/32 |
+| Tests | 544 passing |
+
+**Not changed on purpose:** q10 and the kidney-stone question. Both are honest "not covered" replies when the free
+search engines return nothing; making the web step retry would add 10+ seconds to every uncovered question.
+
+### Assets
+
+- README rewritten for v2: what it does, a mermaid diagram of the pipeline, a table of which code does what, the
+  results, how the main choices were made, quick start, tests, deployment, limitations, layout, sources; the origin
+  note kept.
+- Landing page (`web/index.html`): v2 text, a "try it" tour, measured numbers, known limits, the video.
+- Demo video recorded by Playwright from the live site with captions (`docs/demo.mp4`, `docs/demo-preview.gif`),
+  screenshots (`docs/screenshots.png`) and the social preview image (`web/og.png`).
+- GitHub: description and topics updated (LaBSE out; LangChain, Qdrant, hybrid search, BM25, Hindi, public health,
+  retrieval-augmented generation in).
+- Resume bullets drafted for his approval (internship data folder); no resume changed yet.

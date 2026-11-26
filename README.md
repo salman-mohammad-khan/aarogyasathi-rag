@@ -2,244 +2,219 @@
 
 [![CI](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml/badge.svg)](https://github.com/salman-mohammad-khan/aarogyasathi-rag/actions/workflows/ci.yml)
 
-**A multilingual, retrieval-augmented health-awareness chatbot with built-in claim verification.**
+**A multilingual public-health assistant for rural India: answers cited from official Indian and WHO guidelines, in
+English, Hindi and Hinglish, with safety checks around the model.**
 
-It answers preventive-health questions in English, Hindi and Hinglish, checks forwarded health claims against curated
-myths and live web evidence, and escalates emergencies without involving an LLM. Built for rural and semi-urban India.
+It answers from a library of 34 official documents (MoHFW, NCDC, NCVBDC, NHM, NHSRC ASHA modules, NTEP, WHO),
+shows the page each answer comes from, fact-checks forwarded health myths, never gives medicine doses, and sends
+emergencies to 108/112 before any AI model runs.
 
-> Awareness system only. It is not a doctor and never diagnoses.
+> Awareness only. It is not a doctor and never diagnoses or prescribes.
 
-**Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (hosted on an Oracle Cloud free-tier VM; answers come from Gemma 3 27B on Amazon Bedrock).
-
-**Status: v2 rebuild in progress.** The next version answers from about 30 official MoHFW, NCDC and WHO documents
-with hybrid retrieval (embeddings + BM25), page-level citations and a published evaluation. The version described
-below (v1) is live and is kept in the tag `v1-legacy`; the clean-up for v2 removed the surveillance prototype, the
-admin dashboard, the Twilio adapter and the local and hosted Ollama models.
+**Live demo:** [aarogyasathi.nova-care.xyz](https://aarogyasathi.nova-care.xyz) (Oracle Cloud Arm VM; models on
+Amazon Bedrock, Mumbai).
 
 **Origin.** This began as a college minor project (ES-451, SIH-25049). This repository is the standalone version I
 maintain, with the full commit history. The submitted college version, with its report and paper, is archived at
-[salman-mohammad-khan/AarogyaSathi](https://github.com/salman-mohammad-khan/AarogyaSathi).
+[salman-mohammad-khan/AarogyaSathi](https://github.com/salman-mohammad-khan/AarogyaSathi). The first version of this
+repository (a rule-based chatbot with an LLM attached) is kept in the tag `v1-legacy`; v2, described here, is a
+rebuild around retrieval-augmented generation, documented step by step in [`docs/v2/BUILD_LOG.md`](docs/v2/BUILD_LOG.md).
 
-![A cited answer, a claim check and an emergency response in the web chat](docs/screenshots.png)
+![A cited answer, a fact-check and an emergency reply in the web chat](docs/screenshots.png)
 
-*Left to right: an answer grounded in the knowledge base with its sources, a forwarded claim checked against curated
-myths, and a rule-based emergency response. Captured from the Oracle Cloud demo.*
+*Left to right: a cited answer from the national dengue guideline, a forwarded myth checked, and an emergency reply.
+Captured from the live site.*
 
-**Demo.** The full 82-second walkthrough covers cited answers, claim verification, emergency escalation and the Hindi
-claim check ([download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)).
+**Demo video** (__VIDEO_SECONDS__ s): a cited answer, Hinglish, a dose question, a fact-check, a trusted-website answer
+and an emergency. [Watch or download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4).
 
-https://github.com/user-attachments/assets/0479ed30-e8e6-44c6-9146-a2e765b1314c
+[![Demo preview](docs/demo-preview.gif)](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)
 
 ## What it does
 
-- **Answers health questions** from a curated knowledge base (14 diseases, 35 FAQs, 13 vaccines) with sources from
-  WHO, MoHFW and ICMR. The LLM answers only from the retrieved entry and cites it.
-- **Fact-checks health claims.** Paste or forward a message and get `VERIFIED`, `MYTH`, `PARTLY TRUE` or `UNVERIFIABLE`
-  with a confidence score, an explanation, sources and a fear-mongering flag.
-- **Handles emergencies and self-harm first**, with rule-based responses that never call the LLM.
-- **Guides symptom reports** with one clarifying question (duration, fever, vomiting) before listing possible
-  conditions. It understands negation ("no fever") and never diagnoses.
-- **Looks up vaccination schedules** (UIP) by age or pregnancy, and individual vaccines.
-- **Has no live outbreak feed**, so it does not show area alerts. An outbreak question gets an honest "no live data"
-  answer that points to the NCDC (IDSP) weekly reports and the state health department.
-- **Languages:** English, Hindi and Hinglish. Other Indian languages are not supported.
+- **Answers health questions with citations.** Search finds the 5 most relevant passages among 3,265 taken from 34
+  official documents; the model writes only from them and cites each fact (`[1]`, `[2]`), and the page shows the
+  document, page number and a link that opens the PDF at that page.
+- **Speaks the user's language.** English, Hindi (Devanagari) and Hinglish (Hindi typed in English letters). Hindi and
+  Hinglish questions are rewritten into English for search (with a word list for village terms such as *loo* = heat
+  stroke, *dast* = diarrhoea), and the answer comes back in the user's language. Follow-up questions ("aur bachchon
+  mein?") are understood.
+- **Goes beyond the library carefully.** If the library has no answer: a trusted public-health website (WHO, MoHFW,
+  NHM, PIB, ICMR, NHS, CDC, MedlinePlus) with its link; for low-risk topics only, short general information that is
+  clearly labelled; otherwise an honest "not covered, ask your ASHA worker or doctor". Every answer carries a coloured
+  label saying which of these it is.
+- **Fact-checks forwarded messages.** "fact check: papaya leaf juice cures dengue" gets VERIFIED, MYTH, PARTLY TRUE,
+  NOT ENOUGH EVIDENCE or LIKELY MYTH, with what the verdict is based on: 64 curated myths, then the library (with
+  citations), then trusted websites, then a cautious labelled view. No made-up confidence percentages.
+- **Puts safety first.** Emergencies and self-harm are answered by rules before any model (108/112, Tele-MANAS
+  14416), with a Gemma check running alongside for wordings the rules miss; dog bites and heat illness also get cited
+  first aid. Medicine amounts are removed by a code check, choosing a medicine is referred to a doctor, and
+  instruction tricks ("ignore your rules") are refused by a rule.
 
 ## How it works
 
+```mermaid
+flowchart TD
+    M[Message] --> S{Emergency or self-harm words?}
+    S -- yes --> E[108 / 112 or Tele-MANAS reply<br/>+ cited first aid for bites and heat]
+    S -- no --> G{Instruction trick?}
+    G -- yes --> R[Fixed refusal]
+    G -- no --> F{"fact check:" or a known myth?}
+    F -- yes --> FC[Curated myths -> library judge with citations<br/>-> trusted websites -> labelled view]
+    F -- no --> MC{Which medicine should I take?}
+    MC -- "yes, no guideline disease named" --> D[A doctor must choose]
+    MC -- no --> W[Rewrite Hindi/Hinglish to English<br/>Gemma 3 27B + word list]
+    W --> Q[Hybrid search: e5 vectors in Qdrant + BM25<br/>reciprocal rank fusion, top 5 of 3,265]
+    Q --> A[Answer: Qwen3-235B via LangChain<br/>Gemma 3 27B fallback]
+    A --> C[Checks: citations, medicine amounts,<br/>language, prompt leaks]
+    C -->|not covered| T[Trusted website -> low-risk general info -> not covered]
+    C --> OUT[Answer + sources + label]
+    T --> OUT
+    M -.->|in parallel| SL[Gemma safety check] -.->|EMERGENCY / SELF_HARM| E
 ```
-User (web, or WhatsApp when enabled)
-      │
-      ▼
-FastAPI backend ──► router
-                      │ 1. red-flag and self-harm check (always first, rule-based, no LLM)
-                      │ 2. fact-check trigger detection
-                      │ 3. fast path: intent classifier (TF-IDF + LogisticRegression, 13 intents)
-                      │    plus whole-word entity matching (symptoms, diseases, vaccines, ages)
-                      │ 4. if the fast path is not confident: LLM structured-JSON understanding
-                      │ 5. LaBSE cross-lingual retrieval over the curated KB
-                      │ 6. RAG generation (Gemma 3 27B on Bedrock, template fallback, grounded in KB context)
-                      ▼
-        KB (diseases / vaccines / FAQ / myths, EN+HI) + sources
-```
 
-**Retrieval.** Entries are embedded with LaBSE (mean pooling, L2-normalised, cached on disk) and ranked by cosine
-similarity plus a lexical-overlap boost.
+| Step | Code | What happens |
+|---|---|---|
+| Library | `ingest/`, `sources/manifest.yaml` | 38 listed sources (34 used) downloaded, cleaned and cut into 1,200-character chunks per page with section headings, language and a medicine-dose flag (LangChain text splitter) |
+| Index | `app/retrieval/index.py` | multilingual-e5-base vectors and chunk metadata in Qdrant (local mode, 29 MB) |
+| Search | `app/retrieval/search.py`, `rewrite.py`, `keyword.py`, `fusion.py` | English rewrite for Hindi/Hinglish, dense (e5) + keyword (BM25) search, reciprocal rank fusion (k = 60) |
+| Answer | `app/answer/chain.py`, `prompt.py`, `citations.py`, `checks.py` | LangChain LCEL chain with `ChatBedrockConverse`; numbered sources; `with_fallbacks` to Gemma; code checks on the reply |
+| Beyond the library | `app/answer/trusted_web.py`, `general.py`, `outside.py` | allowlisted web search (ddgs) + trafilatura; risk label (NOT_HEALTH / HIGH / LOW) gates general answers |
+| Fact-check | `app/answer/factcheck.py`, `app/factcheck/verifier.py` | curated myth match (e5, disease and remedy conflict checks), library and website judges, safe-direction model view |
+| Safety | `app/core/safety.py`, `safety_llm.py`, `guard.py`, `app/pipeline.py` | emergency and self-harm word rules (English, Hindi, Hinglish), Gemma second check, instruction guard, medicine-choice rule |
 
-**Generation.** The LLM receives only the retrieved entry as context, with strict rules: answer only from the
-context, under 70 words, in the user's language, no diagnosis, no prescriptions. If the model is not reachable, the
-bot answers from deterministic templates.
+## Results
 
-**Fact-check pipeline.** A claim is matched against 64 curated myths with LaBSE and disease-aware re-ranking. If no
-myth matches, live web evidence is gathered and ranked by source trust (WHO, MoHFW and similar domains first), and an
-LLM judge returns structured JSON (verdict, confidence, sources). Otherwise the bot says `UNVERIFIABLE`.
+Measured with the production models on test questions written for this purpose (English, Hindi, Hinglish). Full
+tables, every answer and every judge verdict are in [`eval/results/`](eval/results/); the reasoning behind each choice is in
+[`docs/v2/BUILD_LOG.md`](docs/v2/BUILD_LOG.md).
 
-### Safety behaviour
+| What was measured | Test | Result |
+|---|---|---|
+| Whole pipeline, end to end | 50 new messages (15 questions, 12 emergencies, 8 dose questions, 8 fact-checks, 7 to decline) | **49 / 50** as expected (47 / 50 before two bugs it found were fixed); median 1.3 s |
+| Emergencies | 12 of the 50 (English, Hindi, Hinglish) | **12 / 12** got 108 / 112 (or Tele-MANAS) |
+| Medicine amounts shown to the user | every test above and below | **0** |
+| Search: a right page in the top 5 (hit@5) | 30 fresh hard questions, not used for tuning | **0.97** (MRR@10 0.78) |
+| Search | 81 questions (27 topics x English, Hindi, Hinglish) | 1.00 (MRR@10 0.86) |
+| Faithfulness: answer claims backed by the cited page | 40 questions, judged by DeepSeek V3.2 / Mistral Large 3 | **98% / 100%** |
+| Answers as expected (answer, decline, dose rule) | the same 40 questions | 100% |
+| Questions beyond the library | 20 (low-risk, high-risk, medicine choice, non-health) | 19 / 20 |
+| Fact-checks | 32 claims (curated, library, websites, Hindi/Hinglish, plain sentences) | 32 / 32 |
+| Cost | Qwen3-235B on Bedrock, Mumbai prices | about **$0.67 per 1,000 answers** |
 
-| Message | Response |
-|---|---|
-| Emergency wordings (chest pain, not breathing, heavy bleeding, poisoning, snake bite, seizure, ...) in English, Hindi and Hinglish | 108 / 112 guidance, checked before everything else |
-| Self-harm wordings in English, Hindi and Hinglish | Tele-MANAS (14416 / 1800-891-4416, the national free 24x7 mental health helpline) and 112 |
-| A question about a topic ("how to prevent a heart attack", "stroke kya hota hai") | An information answer, not the emergency reply |
-| An emergency term together with a fact-check request | Emergency guidance, plus a line telling the user to resend the claim on its own |
+Both misses are questions the library does not cover where the trusted-website search returned nothing on that run
+(the kidney-stone question found MedlinePlus when tried again); the bot then said "not covered" instead of guessing.
 
-![A claim check followed by an emergency response](docs/demo-preview.gif)
+**How the main choices were made (all measured, see the build log):**
 
-*A claim check against the curated myths, then a rule-based emergency response.*
-
-**Limits of the emergency rules.** They are word lists and patterns, not understanding, and they cover English, Hindi
-and Hinglish only (no Tamil, Bengali, Marathi or the other listed languages). In two rounds of fresh test sentences,
-written after the rules were widened and measured before any fix, they caught about 55-60% of emergency wordings and
-20-40% of self-harm wordings they had never seen, and wrongly flagged about 40% of fresh information questions. After
-each round the misses were fixed and pinned as regression tests in `tests/test_emergency_coverage.py`, so a new
-wording will still be missed. When in doubt a rule fires, because a false alarm shows a helpline and a miss can cost a
-life. The page tells users to call 108 or 112 themselves.
-
-**Second safety layer.** When a Bedrock key is set, a short model call (`app/core/safety_llm.py`) reads every
-message the word rules left alone and can still raise the emergency or self-harm reply. It runs in the background while
-the normal reply is prepared, only ever adds an alarm (a rule is never cancelled), skips plain greetings, gives up after
-2.5 s, and does nothing if the model is down. Message text is never logged. Switch it off with `SAFETY_LLM_CHECK=false`.
-`scripts/safety_llm_eval.py` reproduces the numbers below. On 82 fresh messages (36 emergencies, 14 self-harm, 16
-information questions, 16 ordinary), one run each, written for this evaluation and including a few Marathi, Tamil and Bengali lines I
-cannot judge myself:
-
-| | Emergencies caught | Self-harm caught | Information questions left alone | Ordinary left alone |
-|---|---|---|---|---|
-| Word rules alone | 17 / 36 | 6 / 14 | 9 / 16 | 16 / 16 |
-| Gemma 3 27B alone | 36 / 36 | 14 / 14 | 15 / 16 | 16 / 16 |
-| gpt-oss 20B alone | 36 / 36 | 14 / 14 | 16 / 16 | 16 / 16 |
-| Rules, then Gemma (what the chat does) | 36 / 36 | 14 / 14 | 8 / 16 | 16 / 16 |
-
-The combined row shows the cost of letting the rules keep the last word: their false alarms on information questions
-stay. The model caught every emergency the rules caught on these sets, but 82 messages is a small sample, so a rule
-is still never overridden. It is not a guarantee; the page keeps its "call 108 or 112" line. Each check is about 500
-input tokens (roughly $0.15 per 1,000 messages at Gemma's price, my estimate), and Bedrock allows 100 requests per
-minute per model on this account, shared with the answers.
-
-Entity matching uses whole words, so "tb" does not match inside "outbreak" and "fits" does not match inside
-"benefits". Regression tests for these cases are in `tests/test_safety_routing.py`.
-
-### Answer model
-
-Implemented in `app/core/generator.py`: if `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key) is set, Amazon Bedrock
-answers (`BEDROCK_MODEL_ID`, default `google.gemma-3-27b-it` in `ap-south-1`). If a call fails, or no key is set, the
-bot answers from deterministic templates. Bedrock is skipped for 30 s only after 3 failures in a row. `/api/health`
-reports the model and every chat response includes `llm_backend`.
-
-The v1 local and hosted Ollama tiers were removed: in testing the 1.7B local model gave wrong vaccine and treatment
-advice, which fixed template answers do not.
+- **Search.** Hinglish questions searched as typed found a right page only about a third of the time; rewriting them
+  into English first brought this to 93-100%. On 30 fresh hard questions, e5 + BM25 + rewrite scored 0.93 hit@5,
+  AWS Titan embeddings 0.97 (one question apart) and LaBSE (the v1 model) 0.83; e5 was chosen because it is free,
+  runs on the server and has no rate limit.
+- **Answer model.** Qwen3-235B and Gemma 3 27B tied on accuracy and safety on a 40-question test judged by DeepSeek
+  V3.2 and Mistral Large 3; Qwen wrote more natural Hinglish and kept to the length limit, so it answers and Gemma is
+  the automatic fallback. gpt-oss-120b dropped citations in Hindi and was not used.
+- **Safety in code, not only in the prompt.** All three models stated medicine amounts in 9-11 of 40 replies despite
+  the prompt rule; a code checker removes them, and the judges found the checker's gaps, which became tests.
 
 ## Tech stack
 
 | Area | Tools |
 |---|---|
-| API | Python 3.12, FastAPI, Uvicorn, Pydantic |
-| Embeddings and retrieval | LaBSE (Hugging Face Transformers), NumPy |
-| Classic NLP | scikit-learn (TF-IDF + Logistic Regression), fastText language ID |
-| LLM | Amazon Bedrock: Gemma 3 27B, with template fallback |
-| Live evidence | DuckDuckGo search (`ddgs`) with a whitelisted-domain filter |
-| Channels | Web chat UI; Meta WhatsApp Cloud API webhook (optional, off by default) |
-| Data | JSON knowledge base |
-| Ops | systemd on an Oracle Cloud Arm VM, Docker, GitHub Actions |
+| API and web | Python 3.12, FastAPI, Uvicorn, Pydantic; plain HTML/CSS/JS chat page |
+| RAG | LangChain (LCEL, `langchain-aws` ChatBedrockConverse, text splitters), Qdrant (local mode), multilingual-e5-base (Hugging Face Transformers, PyTorch), rank-bm25, reciprocal rank fusion |
+| Models | Amazon Bedrock, Mumbai: Qwen3-235B-A22B (answers), Gemma 3 27B (fallback, English rewrite, safety check, risk label) |
+| Documents | pypdf, trafilatura, PyYAML |
+| Web tier | ddgs (allowlisted domains), trafilatura |
+| Language | fastText language ID, word lists for Hinglish |
+| Evaluation | hit@5, MRR@10, LLM-as-judge faithfulness (DeepSeek V3.2, Mistral Large 3), end-to-end checks |
+| Ops | Oracle Cloud Arm VM, systemd, Caddy (HTTPS), GitHub Actions CI, Docker; WhatsApp Cloud API webhook (optional, off) |
 
 ## Quick start
 
 ```powershell
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-ingest.txt
 $env:PYTHONPATH = "$PWD"
-python scripts/setup.py          # downloads LaBSE (~2.2 GB) and lid.176.bin (~125 MB), one time
+python scripts/setup.py            # e5 (~1.1 GB) and the fastText language model, one time
+python -m ingest.build_chunks      # downloads the official documents (~210 MB) and cuts them into chunks
+python -m app.retrieval.index      # builds the Qdrant index (about 1 minute on a GPU, longer on CPU)
 python -m uvicorn app.main:app --port 8000
 ```
 
-Open http://127.0.0.1:8000 for the chat UI, or http://127.0.0.1:8000/docs for the API. Docker: `docker compose up -d`.
-
-Memory: LaBSE fp16 ~1 GB, Python ~0.5 GB, about 1.5 GB in total.
-
-Model answers: copy `.env.example` to `.env` and set `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key from the AWS
-console). Without it the bot uses its template answers.
-
-## API
+Open http://127.0.0.1:8000 for the chat, or http://127.0.0.1:8000/docs for the API. Answers need Amazon Bedrock in
+`ap-south-1`: set `AWS_BEARER_TOKEN_BEDROCK` (a Bedrock API key) in `.env`, or have an AWS login with Bedrock access.
+Memory: about 2 GB (PyTorch and e5).
 
 ```bash
-curl -X POST http://127.0.0.1:8000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "dengue ke lakshan kya hain"}'
+curl -X POST http://127.0.0.1:8000/api/chat -H "Content-Type: application/json" \
+  -d '{"message": "dengue ke lakshan kya hain", "session_id": "demo"}'
 ```
 
-Response: `{reply, intent, language, latency_ms, llm_backend, factcheck}`.
+The reply has `reply`, `intent`, `language`, `flow`, `tier`, `sources` (document, page, link) and, for fact-checks,
+`factcheck` (verdict and basis).
 
-## Evaluation and tests
+## Tests and evaluation
 
 ```powershell
-python scripts/eval.py      # benchmark report
-python -m pytest tests -q   # 396 test cases (131 test functions, parametrised)
+python -m pytest -q                         # 544 tests, no network (fake models), run in CI on every push
+python -m eval.retrieval_bakeoff --golden eval/golden_retrieval_hard.yaml --out s2_bakeoff_hard
+python -m eval.answer_eval --models qwen3-235b,gemma-3-27b
+python -m eval.outside_eval
+python -m eval.factcheck_eval
+python -m eval.final_eval                   # 50 new messages end to end + search + summary table
 ```
 
-| Suite | Result |
-|---|---|
-| Intent classification (30 queries, EN/HI/Hinglish) | 30/30 |
-| Cross-lingual retrieval (15 queries) | 15/15 |
-| Health-claim fact check (34 claims) | 34/34 |
-
-These sets were written during the project: 14 of the 30 intent queries also appear in the training data, and the
-benchmark thresholds differ from the production settings. Read them as component checks, not as an estimate of
-real-world accuracy or clinical correctness. With a Bedrock key set, the claim check scored 33/34 (97.1%) in my last run: one open-ended claim was judged MYTH by the model.
-
-## WhatsApp channel
-
-`app/channels/whatsapp.py` implements the Meta WhatsApp Cloud API webhook: verification challenge, HMAC-SHA256
-signature check, immediate acknowledgement with background processing, duplicate suppression and reply splitting.
-It was demonstrated end to end with a Meta test number and an approved test recipient. Configure it with
-`WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_VERIFY_TOKEN` and `WHATSAPP_APP_SECRET` in your private `.env` (see
-`.env.example`). Never commit these values. `scripts/configure_meta_whatsapp.py` helps with the subscription setup.
-The webhook routes exist only when `WHATSAPP_ENABLED=true`; `/webhook/whatsapp/simulate` (a test route) also needs
-the `ADMIN_TOKEN` secret.
+The evaluation scripts call Bedrock and the web and cost well under $2 in total.
 
 ## Deployment
 
-- **Oracle Cloud Arm VM** (2 OCPU / 12 GiB, free-tier eligible) is what the demo uses. Step-by-step guide:
-  `docs/ORACLE_DEPLOY.md`; setup script: `scripts/oracle_setup.sh`; systemd unit: `scripts/healthbot.service`.
-- **Deploying an update:** `DEPLOY_HOST=ubuntu@<vm-ip> scripts/deploy.sh` runs the tests, backs up the app folder on
-  the VM, uploads the committed files, restarts the service, waits for `/api/health`, sends an emergency-message smoke
-  test and rolls back automatically if anything fails. Use `--dry-run` to preview.
-- **CI:** `.github/workflows/ci.yml` runs the test suite on every push to `main` and on every pull request.
-- **Docker:** `docker compose up -d`. Generic cloud (Render, Railway): see `docs/DEPLOYMENT.md`.
+- **Oracle Cloud Arm VM** (2 OCPU / 12 GB, free tier): `scripts/oracle_setup.sh`, `scripts/healthbot.service`,
+  guide in `docs/ORACLE_DEPLOY.md`.
+- **Updates:** `DEPLOY_HOST=ubuntu@<vm-ip> scripts/deploy.sh` runs the tests, backs up the app on the VM, uploads the
+  committed code and the search index, restarts, waits for `/api/health`, smoke-tests an emergency reply and a cited
+  answer, and rolls back automatically on failure.
+- **Docker:** `docker compose up -d` (builds the library and index inside the image; pass the Bedrock key as an
+  environment variable).
+- **WhatsApp:** `app/channels/whatsapp.py` implements the Meta Cloud API webhook (signature check, duplicate
+  suppression, sources written out as text). Off unless `WHATSAPP_ENABLED=true`.
 
 ## Known limitations
 
-- The knowledge base is small (14 diseases, 35 FAQs, 64 curated myths). Questions outside it fall back to a
-  whitelisted-domain web search or an honest "I don't know".
-- Retrieval is cosine similarity over LaBSE embeddings with a lexical boost. There is no vector database, document
-  chunking, reranker or hybrid BM25 search yet.
-- The benchmarks above are team-written and partly overlap the training data, so they are component checks, not
-  an estimate of real-world accuracy.
-- Answers need a Bedrock key (AWS credits). Without one, or when Bedrock fails, the bot uses its template answers.
-- Awareness only: not a doctor, never diagnoses.
-
-## Roadmap
-
-- v2 (in progress): official-document library, chunking, Qdrant, hybrid BM25 + dense search with reciprocal rank
-  fusion, page-level citations, labelled answers outside the library, and an evaluation with recall@5, MRR and
-  faithfulness.
+- The library is in English. Hindi and Hinglish work through translation; four Hindi ASHA documents are listed but not
+  used yet (three use an old non-Unicode font, one is scanned).
+- The test sets are small (tens of questions per kind): good for choosing between options, not a clinical accuracy
+  figure. Some questions were written after looking at earlier results; the 30 hard questions and the 50 end-to-end
+  messages were not used to tune anything.
+- Answers from trusted websites take 6-15 seconds and depend on free search engines, which sometimes return nothing.
+- Emergency replies for Hinglish users are in Devanagari; questions about a snake bite or a collapse get the
+  emergency reply even when asked for information (the safe side).
+- Awareness only: it never diagnoses or prescribes.
 
 ## Project layout
 
 ```
-app/core/          NLP: language, embeddings, intent, entities, retriever, safety, router, generator
-app/factcheck/     myth-vs-fact verifier (verdict scores, source tiers)
-app/channels/      Meta WhatsApp Cloud API webhook (optional) and simulator endpoint
-data/kb/           curated knowledge base (diseases, vaccines, faq, myths, messages)
-data/training/     intent training examples and a held-out eval set
-web/               WhatsApp-style demo UI
-scripts/           setup, eval, deploy, smoke tests
-tests/             pytest suite
+app/pipeline.py        the order of steps for one message (safety, fact-check, medicine rule, search, answer)
+app/retrieval/         embedders (e5), BM25, fusion, English rewrite, Qdrant index and search
+app/answer/            prompt, LCEL chain, citations, safety checks, trusted websites, general info, fact-check
+app/core/              safety rules, Gemma safety check, guard, entities, language ID, messages
+app/factcheck/         curated myth matching
+ingest/, sources/      document list, download, PDF/HTML loading, cleaning, chunking
+eval/                  test sets, evaluation scripts, results
+docs/v2/BUILD_LOG.md   every step, source, library, decision and server change of the v2 rebuild
+web/                   chat page
+tests/                 pytest suite
 ```
 
 ## Sources
 
-WHO fact sheets, MoHFW, NHM, IDSP, NTEP and NACO advisories, PIB Fact Check and ICMR, curated for awareness
-purposes. Every answer carries a source list and a medical disclaimer.
+The library is listed in [`sources/manifest.yaml`](sources/manifest.yaml): NHSRC Integrated ASHA Training Modules
+A/B/C and the ASHA NCD module (MoHFW), national guidelines for dengue, chikungunya and malaria (NCVBDC), the
+immunization handbook and FAQ (NHM), snakebite and rabies guidelines, the National Action Plan on Heat Related
+Illnesses (NCDC), Anaemia Mukt Bharat (2026), differentiated TB care (NTEP 2025), the diarrhoea control guidelines
+(NHM), and 17 WHO fact sheets. The documents are not stored in the repository; `python -m ingest.build_chunks`
+downloads them from the official sites.
 
 ## Author
 
