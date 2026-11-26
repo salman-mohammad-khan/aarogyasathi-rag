@@ -97,8 +97,16 @@ def _reply(text, intent, lang, **meta):
     return {"text": text, "meta": {"intent": intent, "lang": lang, **meta}}
 
 
-def _rules_first(text: str, session) -> dict | None:
-    """Steps 2-5. Returns a reply, or None when the message should be answered from the library."""
+def _fact_reply(result, route=None) -> dict:
+    """A v2 fact-check result (app/answer/factcheck.py) as a pipeline reply."""
+    return _reply(result.text(), "fact_check", result.lang, verdict=result.verdict, factcheck=result.api(),
+                  sources=result.sources, flow=result.basis, generator="v2", route=route)
+
+
+def _rules_first(text: str, session, fact_checker=None) -> dict | None:
+    """Steps 2-5. Returns a reply, or None when the message should be answered from the library.
+
+    With `fact_checker` (v2, S5) fact-checks use the library; without it, the v1 verifier (curated myths, LaBSE)."""
     lang = _v1_lang(text)
     lower = text.lower()
     red_flags = safety.check_red_flags(text)
@@ -116,10 +124,18 @@ def _rules_first(text: str, session) -> dict | None:
         return _reply(kb.msg(lang, "guard_refusal"), "guard", lang, route="rule")
     if any(t in lower for t in FACT_TRIGGERS):
         session.clear()
+        if fact_checker is not None:
+            return _fact_reply(fact_checker.check(text, question_language(text)))
         result = verifier.verify_claim(text, lang)
         return _reply(verifier.format_verdict(result, lang), "fact_check", lang, verdict=result["verdict"],
                       factcheck=result)
-    if verifier.looks_like_claim(text):
+    if fact_checker is not None and verifier.looks_like_claim(text):
+        # A sentence not marked as a fact-check is judged only if it closely matches a known myth (as in v1).
+        result = fact_checker.curated(text, question_language(text), plain=True)
+        if result:
+            session.clear()
+            return _fact_reply(result, route="claim_detect")
+    elif verifier.looks_like_claim(text):
         result = verifier.verify_claim(text, lang, strict_remedy=True, allow_live=False, plain=True)
         if result.get("verdict") not in ("UNVERIFIABLE", "INVALID", None):
             session.clear()
@@ -130,16 +146,17 @@ def _rules_first(text: str, session) -> dict | None:
     return None
 
 
-def process_message(text: str, session, answerer, outside=None) -> dict:
+def process_message(text: str, session, answerer, outside=None, fact_checker=None) -> dict:
     """One chat message in, {"text", "meta"} out (same shape as the v1 router, plus meta["sources"] and ["tier"]).
 
     `outside` (S4b, app/answer/outside.py) is asked only when the library has no answer: trusted website, then
-    labelled general information for low-risk questions."""
+    labelled general information for low-risk questions. `fact_checker` (S5, app/answer/factcheck.py) checks claims
+    against the curated myths, the library and trusted websites."""
     text = (text or "").strip()
     if not text:
         return _reply(kb.msg("en", "help"), "help", "en")
     safety_check = safety_llm.start(text)  # runs in the background while the reply is prepared
-    reply = _rules_first(text, session)
+    reply = _rules_first(text, session, fact_checker)
     if reply is not None and reply["meta"]["intent"] == "emergency":
         # The word rules fired; the model check is not needed and never overrides them.
         if reply["meta"].get("first_aid"):

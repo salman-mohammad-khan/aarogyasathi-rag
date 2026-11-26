@@ -27,6 +27,12 @@ TRUSTED_SITES = {
     "nhs.uk": "NHS (UK)",
     "cdc.gov": "CDC (US)",
     "medlineplus.gov": "MedlinePlus (US NLM)",
+    # Added in S5 (his OK to add useful government sites): tested from the server on 6 myth queries, PIB found pages
+    # for 4 (its press releases are the government's fact-check statements) and ICMR for 5 (often PDFs, which are
+    # skipped). FSSAI and the National Health Portal returned only licence/login pages; AYUSH was left out because it
+    # covers traditional-medicine research, which tends to support the remedy claims being checked.
+    "pib.gov.in": "PIB (Government of India)",
+    "icmr.gov.in": "ICMR",
 }
 SEARCH_ENGINES = ("auto", "bing", "brave", "mojeek")  # tried in order until one returns a trusted page
 SEARCH_BUDGET_S = 12

@@ -68,6 +68,10 @@ class E5Embedder(_LocalModel):
     def embed_query(self, text):
         return self._encode(["query: " + text])[0]
 
+    def embed_queries(self, texts):
+        """Several short texts compared with each other (claims vs curated myths): "query: " on both sides."""
+        return self._encode(["query: " + t for t in texts])
+
 
 class LaBSEEmbedder(_LocalModel):
     """sentence-transformers/LaBSE (Google, 2020): 109 languages, 768 numbers, built to match translations.
