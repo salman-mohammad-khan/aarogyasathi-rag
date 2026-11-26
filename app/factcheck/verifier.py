@@ -292,6 +292,29 @@ def _entry_remedy_keys(entry, row_text=""):
     return _remedy_keys(claim.get("en", "")) | _remedy_keys(claim.get("hi", "")) | _remedy_keys(row_text)
 
 
+# How a disease spreads. Embeddings place "dengue spreads by touch" next to the curated "Aedes mosquitoes transmit
+# dengue" (similarity 0.93), and "TB spreads through the air" next to the "TB spreads by touch" myth, so a claim naming
+# a different route than the matched myth must not take its verdict (found in the S6 final evaluation).
+ROUTE_WORDS = {
+    "touch": r"\btouch\w*|\bhug\w*|\butensil\w*|\bsharing\b|\bchhoo(ne|na|nay)?\b|\bchhune\b|\bchoone\b|\bchhua\b|"
+             r"\bbartan\b|छूने|छूना|छुआ|छुने|बर्तन",
+    "air": r"\bair\b|\bairborne\b|\bcough\w*|\bsneez\w*|\bhawa\b|\bkhaans\w*|\bkhans\w*|\bchheenk\w*|\bchhink\w*|"
+           r"हवा|खाँस|खांस|छींक",
+    "mosquito": r"\bmosquito\w*|\baedes\b|\banopheles\b|\bmachh?c?h?ar\b|\bmacchar\b|मच्छर",
+    "water_food": r"\bwater\b|\bfood\b|\bpaa?ni\b|\bkhana\b|पानी|खाना|भोजन",
+    "blood": r"\bblood\b|\bkhoon\b|\bsyringe\w*|\bneedle\w*|खून|रक्त",
+}
+
+
+def _route_keys(s):
+    return {route for route, pattern in ROUTE_WORDS.items() if re.search(pattern, s, re.IGNORECASE)}
+
+
+def _entry_route_keys(entry, row_text=""):
+    claim = entry.get("claim", {})
+    return _route_keys(claim.get("en", "")) | _route_keys(claim.get("hi", "")) | _route_keys(row_text)
+
+
 _QUESTION_WORDS = re.compile(
     r"\b(what|how long|how many|how much|how do|how can|how to|why|when|where|which|who|whom|kaise|kab|kaun|kitna|kitne|kitni|kyun|kyu|kyon)\b|"
     r"(क्या\s+क्या|कैसे|कब|कौन|कितना|कितने|कितनी|क्यों)",
@@ -420,9 +443,11 @@ def verify_claim(text, lang="en", strict_remedy=False, allow_live=False, plain=F
     er_best = _entry_remedy_keys(entry, row_text)
     th = MATCH_THRESHOLDS[_embed_name]
     remedy_conflict = bool(er_best) and not (rk & er_best) and (strict_remedy or best_sim < th["remedy_sure"])
+    claim_routes, entry_routes = _route_keys(claim), _entry_route_keys(entry, row_text)
+    route_conflict = bool(claim_routes) and bool(entry_routes) and not (claim_routes & entry_routes)
 
     use_curated = (any(best_sim >= s and overlap >= o for s, o in th["pairs"]) and not disease_conflict
-                   and not remedy_conflict)
+                   and not remedy_conflict and not route_conflict)
     if plain:
         # A plain message was not marked as a claim by the user, so only a close match may answer it.
         use_curated = use_curated and best_sim >= th["plain"][0] and overlap >= th["plain"][1]

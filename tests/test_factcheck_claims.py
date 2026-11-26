@@ -112,3 +112,15 @@ def test_unknown_plain_claims_are_not_judged(claim):
                                    "malaria ki dawai bukhar utarte hi band kar do"])
 def test_a_malaria_claim_does_not_get_the_bp_myth(claim):
     assert verifier.verify_claim(claim)["verdict"] == "UNVERIFIABLE"
+
+
+@pytest.mark.parametrize("claim", ["dengue ek insaan se dusre insaan ko chhoone se failta hai",
+                                   "TB spreads through the air when a patient coughs"])
+def test_a_different_spread_route_does_not_take_the_curated_verdict(claim):
+    # S6 final evaluation: "dengue spreads by touch" got VERIFIED from the "Aedes mosquitoes transmit dengue" entry,
+    # and "TB spreads through the air" got MYTH from the "TB spreads by touch" myth. They now go to the library judge.
+    assert verifier.verify_claim(claim)["verdict"] == "UNVERIFIABLE"
+
+
+def test_the_same_route_still_matches():
+    assert verifier.verify_claim("TB chhoone se ya bartan share karne se failta hai")["verdict"] == "MYTH"

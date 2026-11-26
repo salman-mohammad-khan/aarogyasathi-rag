@@ -135,6 +135,12 @@ def _rules_first(text: str, session, fact_checker=None) -> dict | None:
             return _reply(safety.self_harm_response(lang), "emergency", lang, red_flags=red_flags)
         reply = safety.emergency_response(lang, red_flags)
         if any(t in lower for t in FACT_TRIGGERS):
+            if fact_checker is not None and set(red_flags) <= FIRST_AID_FLAGS:
+                # "fact check: washing a dog bite with soap prevents rabies" (S6 final evaluation): asking it again
+                # "on its own" would hit the same rule, so the claim is checked here, below the emergency reply.
+                fact = _fact_reply(fact_checker.check(text, question_language(text)), route="emergency_fact_check")
+                fact["text"] = reply + "\n\n" + fact["text"]
+                return fact
             reply += "\n\n" + safety.fact_check_note(lang)
         return _reply(reply, "emergency", lang, red_flags=red_flags, first_aid=needs_first_aid(text, red_flags))
     if guard.is_injection(text):
@@ -170,7 +176,9 @@ def process_message(text: str, session, answerer, outside=None, fact_checker=Non
     if reply is not None and reply["meta"]["intent"] == "emergency":
         # The word rules fired; the model check is not needed and never overrides them.
         if reply["meta"].get("first_aid"):
-            answer = answerer.answer(text, lang=question_language(text))
+            # Ask it as a first-aid question: a bare report ("kutte ne kaat liya") was answered "not covered".
+            answer = answerer.answer(f"{text.rstrip(' .?!।')}. What first aid should be given right now?",
+                                     lang=question_language(text))
             if answer.sources:  # only a cited library answer is added; otherwise the emergency reply stands alone
                 reply["text"] += "\n\n" + answer.text
                 reply["meta"].update(flow="emergency_first_aid", sources=answer.sources, query=answer.query)
