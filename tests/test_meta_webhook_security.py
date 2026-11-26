@@ -62,7 +62,7 @@ def test_duplicate_message_is_only_answered_once(monkeypatch):
     monkeypatch.setattr(config, "WHATSAPP_PHONE_ID", "test-phone-id")
     process = Mock(return_value={"text": "Synthetic reply"})
     send = Mock(return_value={"status": "sent"})
-    monkeypatch.setattr(channel.router, "process_message", process)
+    monkeypatch.setattr(channel, "_answer", process)
     monkeypatch.setattr(channel, "send_whatsapp_message", send)
     channel._completed_meta_messages.clear()
     body = {"entry": [{"changes": [{"value": {
@@ -80,7 +80,7 @@ def test_duplicate_message_is_only_answered_once(monkeypatch):
 def test_wrong_receiver_and_status_updates_do_not_answer(monkeypatch):
     monkeypatch.setattr(config, "WHATSAPP_PHONE_ID", "correct-phone-id")
     process = Mock()
-    monkeypatch.setattr(channel.router, "process_message", process)
+    monkeypatch.setattr(channel, "_answer", process)
     channel._handle_meta_inbound_payload({"entry": [{"changes": [{"value": {
         "metadata": {"phone_number_id": "different-phone-id"},
         "messages": [{"id": "m", "from": "synthetic", "type": "text", "text": {"body": "hi"}}]

@@ -1,7 +1,7 @@
 """Second safety layer: a short hosted-model check for emergencies and self-harm the word rules did not catch.
 
 The rules in entities.py run first and are never overridden. This layer only ADDS an alarm: if the rules found nothing
-but the model reads the message as an emergency or self-harm, the router shows the same emergency or helpline reply.
+but the model reads the message as an emergency or self-harm, the pipeline shows the same emergency or helpline reply.
 If the call is off, slow, fails or returns something unreadable, the answer is None and nothing changes.
 
 The message text is never logged, only counts of the labels.
@@ -13,7 +13,6 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 from app.config import SAFETY_LLM_CHECK, SAFETY_LLM_MAX_TOKENS, SAFETY_LLM_MODEL_ID, SAFETY_LLM_TIMEOUT_S
-from app.core import generator
 
 log = logging.getLogger(__name__)
 
@@ -48,8 +47,37 @@ SYSTEM_PROMPT = (
 )
 
 
+_credentials = None
+
+
 def _enabled():
-    return SAFETY_LLM_CHECK and generator.bedrock_configured()
+    """On when SAFETY_LLM_CHECK is set and AWS credentials exist (the server's Bedrock API key, or an AWS login)."""
+    global _credentials
+    if not SAFETY_LLM_CHECK:
+        return False
+    if _credentials is None:
+        import os
+
+        import boto3
+
+        _credentials = bool(os.environ.get("AWS_BEARER_TOKEN_BEDROCK")) or boto3.Session().get_credentials() is not None
+    return _credentials
+
+
+_llm = None
+
+
+def _ask(system_prompt, user_prompt, max_tokens, timeout):
+    """One short call to Gemma 3 27B on Bedrock through LangChain (same client as the rest of v2)."""
+    global _llm
+    if _llm is None:
+        from botocore.config import Config
+        from langchain_aws import ChatBedrockConverse
+
+        _llm = ChatBedrockConverse(model=SAFETY_LLM_MODEL_ID, region_name="ap-south-1", temperature=0,
+                                   max_tokens=max_tokens,
+                                   config=Config(read_timeout=timeout, connect_timeout=3, retries={"max_attempts": 1}))
+    return _llm.invoke([("system", system_prompt), ("human", user_prompt)]).text
 
 
 def build_prompt(text):
@@ -77,10 +105,8 @@ def classify(text, max_tokens=None, timeout=None):
     if not _enabled() or len(text.strip()) < 4 or text.strip().lower() in _SKIP:
         return None
     try:
-        reply = generator.generate_hosted(
-            SYSTEM_PROMPT, build_prompt(text), max_tokens or SAFETY_LLM_MAX_TOKENS, timeout or SAFETY_LLM_TIMEOUT_S,
-            model_id=SAFETY_LLM_MODEL_ID or None,
-        )
+        reply = _ask(SYSTEM_PROMPT, build_prompt(text), max_tokens or SAFETY_LLM_MAX_TOKENS,
+                     timeout or SAFETY_LLM_TIMEOUT_S)
     except Exception as exc:  # never let a safety add-on break the chat
         log.warning("safety check failed (%s)", type(exc).__name__)
         return None

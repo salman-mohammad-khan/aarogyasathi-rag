@@ -1,3 +1,6 @@
+"""Fixed texts: curated health myths (data/kb/myths.json) and the bot's messages (data/kb/messages.json: emergency
+and helpline replies, refusals, greetings, in several Indian languages). The disease, vaccine and FAQ cards of the
+first version were removed in S6; answers now come from the document library (app/retrieval, app/answer)."""
 import json
 
 from app.config import KB_DIR, LANG_NAMES
@@ -10,30 +13,14 @@ def load():
     if _DB is not None:
         return _DB
     _DB = {}
-    for name in ["diseases", "vaccines", "faq", "myths", "messages"]:
+    for name in ["myths", "messages"]:
         with open(KB_DIR / f"{name}.json", encoding="utf-8") as f:
             _DB[name] = json.load(f)
     return _DB
 
 
-def diseases():
-    return load()["diseases"]["diseases"]
-
-
-def vaccines():
-    return load()["vaccines"]["vaccines"]
-
-
-def faqs():
-    return load()["faq"]["faqs"]
-
-
 def myths():
     return load()["myths"]["myths"]
-
-
-def vaccine_summary():
-    return load()["vaccines"]["schedule_summary"]
 
 
 def messages():

@@ -1,6 +1,6 @@
 """Regression tests for safety ordering and whole-word entity matching.
 
-Each test pins a bug found in a code audit of the router:
+Each test pins a bug found in a code audit of the first version's router; since S6 they run through the v2 pipeline:
   * fact-check triggers were evaluated before the emergency check,
   * short aliases matched inside other words ("tb" in "outbreak", "fits" in "benefits"),
   * self-harm phrases were not recognised,
@@ -13,33 +13,23 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.core import entities, generator, intent, kb, safety
-from app.core import router
-from app.core import session as session_store
+from app import pipeline
+from app.core import entities, kb, safety, safety_llm
+from tests import pipeline_helpers
+from tests.pipeline_helpers import ask
+from tests.pipeline_helpers import session as _fresh_session
 
-kb.load()
-intent.load()
-generator._availability = False  # templates only, no LLM
+
+@pytest.fixture(autouse=True)
+def no_model_check(monkeypatch):
+    monkeypatch.setattr(safety_llm, "start", lambda text: None)
 
 
 @pytest.fixture
-def fact_check_spy(monkeypatch):
-    """Replace the fact-checker with a stub and record every claim it is asked to verify."""
-    calls = []
-
-    def fake_verify(text, lang):
-        calls.append(text)
-        return {"verdict": "MYTH"}
-
-    monkeypatch.setattr(router.verifier, "verify_claim", fake_verify)
-    monkeypatch.setattr(router.verifier, "format_verdict", lambda result, lang: "FACT-CHECK VERDICT")
-    return calls
-
-
-def _fresh_session(name):
-    s = session_store.get_session(name)
-    s.clear()
-    return s
+def fact_check_spy():
+    """The fake fact-checker's list of claims it was asked to check (emptied for each test)."""
+    pipeline_helpers.fact_checker.calls.clear()
+    return pipeline_helpers.fact_checker.calls
 
 
 # --- whole-word matching ---------------------------------------------------------------------------------
@@ -118,7 +108,7 @@ def test_self_harm_phrases_detected(text):
 
 def test_emergency_beats_fact_check_trigger(fact_check_spy):
     s = _fresh_session("sr_emergency_first")
-    r = router.process_message("check this: my father has chest pain and cannot breathe", session=s)
+    r = ask("check this: my father has chest pain and cannot breathe", s)
     assert r["meta"]["intent"] == "emergency"
     assert fact_check_spy == []  # the fact-checker must never run
     assert "108" in r["text"]
@@ -127,41 +117,18 @@ def test_emergency_beats_fact_check_trigger(fact_check_spy):
 
 def test_plain_fact_check_still_runs(fact_check_spy):
     s = _fresh_session("sr_factcheck")
-    r = router.process_message("fact check: drinking hot water every hour kills the covid virus", session=s)
+    r = ask("fact check: drinking hot water every hour kills the covid virus", s)
     assert r["meta"]["intent"] == "fact_check"
     assert len(fact_check_spy) == 1
 
 
 def test_self_harm_gets_mental_health_helpline(fact_check_spy):
     s = _fresh_session("sr_self_harm")
-    r = router.process_message("I want to end my life", session=s)
+    r = ask("I want to end my life", s)
     assert r["meta"]["intent"] == "emergency"
     assert "14416" in r["text"]
     assert "112" in r["text"]
     assert fact_check_spy == []
-
-
-def test_outbreak_query_not_hijacked_by_tb_alias():
-    s = _fresh_session("sr_outbreak")
-    r = router.process_message("any outbreak near 110001", pincode="110001", session=s)
-    assert r["meta"].get("disease") != "tuberculosis"
-
-
-# --- vaccination age vs duration -------------------------------------------------------------------------
-
-def test_duration_is_not_a_vaccination_age():
-    assert router._age_to_milestones("I have had this cough for 2 years") is None
-    assert router._age_to_milestones("my baby has had fever for 2 months") is None
-    assert router._age_to_milestones("knee pain since 3 years") is None
-
-
-def test_real_ages_still_map_to_milestones():
-    assert router._age_to_milestones("my baby is 6 weeks old") == "6_weeks"
-    assert router._age_to_milestones("which vaccine at 14 weeks") == "14_weeks"
-    assert router._age_to_milestones("meri beti 10 saal ki hai kaun sa tika") == "10_years"
-    # Pregnancy is a vaccine topic only when the message is about a vaccine or tetanus (see test_vaccine_routing.py).
-    assert router._age_to_milestones("I am pregnant, which vaccine do I need") == "pregnancy"
-    assert router._age_to_milestones("I am pregnant") is None
 
 
 # --- natural phrasings, Hinglish and language misdetection of emergencies --------------------------------
@@ -194,7 +161,7 @@ def test_natural_phrasings_are_red_flags(text, flag):
 @pytest.mark.parametrize("text,flag", NATURAL_EMERGENCIES)
 def test_natural_phrasings_route_to_emergency_reply(text, flag, fact_check_spy):
     s = _fresh_session("sr_natural_" + str(abs(hash(text))))
-    r = router.process_message(text, session=s)
+    r = ask(text, s)
     assert r["meta"]["intent"] == "emergency"
     assert flag in r["meta"]["red_flags"]
     assert "108" in r["text"] and "112" in r["text"]
@@ -218,9 +185,9 @@ def test_nearby_wording_without_an_emergency_stays_quiet(text):
 @pytest.mark.parametrize("wrong_lang", ["kn", "ta", "te", "bn", "mr", "ml", "gu", "pa", "or", "ur"])
 def test_romanised_hindi_emergency_survives_language_misdetection(monkeypatch, wrong_lang):
     # fastText labelled "mere bhai ko saap ne kaat liya hai" as Kannada on the demo VM.
-    monkeypatch.setattr(router.language, "detect_language", lambda text: wrong_lang)
+    monkeypatch.setattr(pipeline.language, "detect_language", lambda text: wrong_lang)
     s = _fresh_session("sr_misdetect_" + wrong_lang)
-    r = router.process_message("mere bhai ko saap ne kaat liya hai", session=s)
+    r = ask("mere bhai ko saap ne kaat liya hai", s)
     assert r["meta"]["intent"] == "emergency"
     assert r["meta"]["lang"] == "hi"
     assert "साँप" in r["text"] and "112" in r["text"]
@@ -228,17 +195,17 @@ def test_romanised_hindi_emergency_survives_language_misdetection(monkeypatch, w
 
 
 def test_romanised_english_emergency_misdetected_as_another_language_gets_english(monkeypatch):
-    monkeypatch.setattr(router.language, "detect_language", lambda text: "kn")
+    monkeypatch.setattr(pipeline.language, "detect_language", lambda text: "kn")
     s = _fresh_session("sr_misdetect_en")
-    r = router.process_message("A snake just bit my brother", session=s)
+    r = ask("A snake just bit my brother", s)
     assert r["meta"]["lang"] == "en"
     assert "National Health Helpline" in r["text"]
 
 
 def test_romanised_hindi_chest_pain_with_wrong_label_gets_hindi(monkeypatch):
-    monkeypatch.setattr(router.language, "detect_language", lambda text: "kn")
+    monkeypatch.setattr(pipeline.language, "detect_language", lambda text: "kn")
     s = _fresh_session("sr_misdetect_chest")
-    r = router.process_message("seene mein dard ho raha hai", session=s)
+    r = ask("seene mein dard ho raha hai", s)
     assert r["meta"]["lang"] == "hi"
     assert "112" in r["text"]
 
@@ -253,9 +220,9 @@ def test_emergency_language_keeps_script_based_detection():
 
 
 def test_self_harm_reply_language_is_also_corrected(monkeypatch):
-    monkeypatch.setattr(router.language, "detect_language", lambda text: "kn")
+    monkeypatch.setattr(pipeline.language, "detect_language", lambda text: "kn")
     s = _fresh_session("sr_misdetect_selfharm")
-    r = router.process_message("mujhe marna chahta hoon", session=s)
+    r = ask("mujhe marna chahta hoon", s)
     assert r["meta"]["lang"] == "hi"
     assert "14416" in r["text"]
 
@@ -271,7 +238,7 @@ def test_self_harm_reply_language_is_also_corrected(monkeypatch):
 ])
 def test_non_snake_emergencies_have_no_snake_bite_tip(text):
     s = _fresh_session("sr_no_snake_tip")
-    r = router.process_message(text, session=s)
+    r = ask(text, s)
     assert r["meta"]["intent"] == "emergency"
     assert "snake" not in r["text"].lower()
     assert "साँप" not in r["text"]
@@ -294,7 +261,7 @@ def test_languages_without_a_tip_text_get_the_plain_emergency_reply():
     assert safety.emergency_response("ta", ["snake_bite"]) == safety.emergency_response("ta")
 
 
-# --- widened emergency and self-harm wordings reach the right reply through the router --------------------------
+# --- widened emergency and self-harm wordings reach the right reply through the pipeline --------------------------
 
 @pytest.mark.parametrize("text", [
     "my baby is not breathing",
@@ -303,7 +270,7 @@ def test_languages_without_a_tip_text_get_the_plain_emergency_reply():
     "she took 20 sleeping pills",
 ])
 def test_widened_emergency_wordings_get_the_ambulance_reply(text):
-    r = router.process_message(text, session=_fresh_session("sr_wide_emergency"))
+    r = ask(text, _fresh_session("sr_wide_emergency"))
     assert r["meta"]["intent"] == "emergency"
     assert "108" in r["text"]
 
@@ -314,12 +281,12 @@ def test_widened_emergency_wordings_get_the_ambulance_reply(text):
     "मैं आत्महत्या करना चाहती हूँ",
 ])
 def test_widened_self_harm_wordings_get_the_mental_health_helpline(text):
-    r = router.process_message(text, session=_fresh_session("sr_wide_self_harm"))
+    r = ask(text, _fresh_session("sr_wide_self_harm"))
     assert r["meta"]["intent"] == "emergency"
     assert "14416" in r["text"]
 
 
 @pytest.mark.parametrize("text", ["how to prevent a heart attack", "stroke kya hota hai"])
 def test_questions_about_an_emergency_topic_are_not_answered_as_emergencies(text):
-    r = router.process_message(text, session=_fresh_session("sr_info_question"))
+    r = ask(text, _fresh_session("sr_info_question"))
     assert r["meta"]["intent"] != "emergency"

@@ -214,27 +214,27 @@ def test_benign_messages_do_not_trigger_an_emergency(text):
     assert _flags(text) == []
 
 
-def test_training_and_eval_queries_do_not_trigger_new_emergencies():
-    """Every non-emergency example the project already uses must stay quiet."""
-    intents = json.loads((ROOT / "data/training/intents.json").read_text(encoding="utf-8"))["intents"]
-    evalset = json.loads((ROOT / "data/training/eval.json").read_text(encoding="utf-8"))
+def test_evaluation_questions_do_not_trigger_new_emergencies():
+    """Every health question in the v2 evaluation sets (search, answers, beyond-library) must stay quiet: none of them
+    describes an emergency. (Until S6 this used the first version's intent training data, removed with it.)"""
+    import yaml
+
     texts = []
-    for label, body in intents.items():
-        examples = body if isinstance(body, list) else body.get("examples", body.get("patterns", []))
-        if label == "emergency":
-            continue
-        texts.extend(e if isinstance(e, str) else e.get("text", "") for e in examples)
-    # Fact-check claims are left out: a claim such as "chew aspirin during a heart attack" mentions an emergency
-    # on purpose and is already answered by the fact-check path.
-    for key in ("intent_eval", "retrieval_eval"):
-        for row in evalset[key]:
-            texts.append(row.get("query") or row.get("text") or "")
+    for name in ("golden_retrieval.yaml", "golden_retrieval_hard.yaml", "golden_answers.yaml"):
+        data = yaml.safe_load((ROOT / "eval" / name).read_text(encoding="utf-8"))
+        for row in data.get("topics", data.get("questions", [])):
+            if "questions" in row:
+                texts.extend(row["questions"].values())
+            else:
+                texts.append(row.get("question") or row.get("q") or "")
     texts = [t for t in texts if t]
     assert len(texts) > 100
-    # Real reports that are correctly treated as emergencies ("difficulty breathing" already was one in English).
-    allowed = {"meri chhati me dard ho raha hai", "saans lene me takleef hai"}
-    flagged = [t for t in texts if _flags(t) and t not in allowed]
-    assert flagged == [], flagged[:10]
+    # Questions about bites, collapse, chest pain with breathlessness or coughing blood do get the emergency reply
+    # (on purpose: the safe side; bites and collapse in the heat also get cited first aid). Any other flag is a
+    # false alarm.
+    urgent = {"snake_bite", "rabid_animal", "unconscious", "chest_pain", "bleeding"}
+    false_alarms = [(t, _flags(t)) for t in texts if _flags(t) and not set(_flags(t)) <= urgent]
+    assert false_alarms == [], false_alarms[:10]
 
 
 # --- Pinned from two later blind rounds ---------------------------------------------------------------------
