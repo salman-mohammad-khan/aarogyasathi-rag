@@ -2,28 +2,29 @@
 
 | Kind | Claim | Verdict | Based on | Seconds | OK |
 |---|---|---|---|---|---|
-| fact check | Garlic can cure dengue fever | MYTH | curated | 3.3 | yes |
-| fact check | Giloy juice cures dengue | PARTLY_TRUE | curated | 0.2 | yes |
+| fact check | Garlic can cure dengue fever | MYTH | curated | 1.1 | yes |
+| fact check | Giloy juice cures dengue | PARTLY_TRUE | curated | 0.3 | yes |
 | fact check | Papaya leaf juice raises platelet count in dengue | PARTLY_TRUE | curated | 0.2 | yes |
-| fact check | lehsun khane se dengue theek ho jata hai | MYTH | curated | 0.2 | yes |
+| fact check | lehsun khane se dengue theek ho jata hai | MYTH | curated | 0.3 | yes |
 | fact check | kutte ke kaatne par mirchi lagane se rabies nahi hota | MYTH | curated | 0.0 | yes |
 | fact check | garam paani peene se corona khatam ho jata hai | MYTH | curated | 0.2 | yes |
-| fact check | BP normal aa jaye to dawai band kar sakte hain | MYTH | curated | 0.0 | yes |
-| fact check | ORS should be stopped if the child vomits | MYTH | library | 1.6 | yes |
+| fact check | BP normal aa jaye to dawai band kar sakte hain | MYTH | curated | 0.2 | yes |
+| fact check | ORS should be stopped if the child vomits | MYTH | library | 1.4 | yes |
 | fact check | Toothpaste should be applied on a burn | MYTH | curated | 0.0 | yes |
 | fact check | saanp kaatne par zakhm se zeher choos lena chahiye | MYTH | curated | 0.0 | yes |
 | fact check | TB chhoone se ya bartan share karne se failta hai | MYTH | curated | 0.1 | yes |
-| fact check | मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए | MYTH | curated | 0.1 | yes |
-| fact check | Polio drops can make children infertile later in life | MYTH | curated | 0.1 | yes |
-| fact check | दस्त में बच्चे को खाना बंद कर देना चाहिए | MYTH | library | 3.6 | yes |
-| fact check | Drinking lemon water every morning burns belly fat | LIKELY_MYTH | general | 15.0 | yes |
-| fact check | Dengue only spreads at night | MYTH | curated | 0.2 | yes |
+| fact check | मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए | MYTH | library | 3.3 | yes |
+| fact check | malaria ki dawai bukhar utarte hi band kar do | MYTH | library | 1.8 | yes |
+| fact check | Polio drops can make children infertile later in life | MYTH | curated | 0.2 | yes |
+| fact check | दस्त में बच्चे को खाना बंद कर देना चाहिए | MYTH | library | 3.4 | yes |
+| fact check | Drinking lemon water every morning burns belly fat | LIKELY_MYTH | general | 14.5 | yes |
+| fact check | Dengue only spreads at night | MYTH | curated | 0.3 | yes |
 | fact check | Dengue spreads through the bite of Aedes mosquitoes | TRUE | curated | 0.2 | yes |
 | fact check | ORS helps prevent dehydration in diarrhoea | TRUE | curated | 0.1 | yes |
-| fact check | TB ka ilaaj poora karna zaroori hai, beech mein dawai nahi chhodni chahiye | TRUE | library | 2.1 | yes |
+| fact check | TB ka ilaaj poora karna zaroori hai, beech mein dawai nahi chhodni chahiye | TRUE | library | 1.9 | yes |
 | fact check | कुत्ते के काटने पर घाव को साबुन और पानी से धोना चाहिए | TRUE | library | 3.0 | yes |
-| fact check | Mosquito nets help prevent malaria | TRUE | library | 1.1 | yes |
-| fact check | Zinc is given to children with diarrhoea | TRUE | library | 1.4 | yes |
+| fact check | Mosquito nets help prevent malaria | TRUE | library | 1.4 | yes |
+| fact check | Zinc is given to children with diarrhoea | TRUE | library | 1.2 | yes |
 | plain myth | Garlic can cure dengue fever | MYTH | curated | 0 | yes |
 | plain myth | lehsun khane se dengue theek ho jata hai | MYTH | curated | 0 | yes |
 | plain myth | Dengue mosquitoes bite only at night | MYTH | curated | 0 | yes |
@@ -88,7 +89,7 @@ Aam health myths ki jaanchi hui list ke aadhar par (WHO Hypertension, IHCI, MoHF
 ### ORS should be stopped if the child vomits
 
 [Fact check] MYTH
-ORS should not be stopped if the child vomits. According to the guidelines, if the child vomits, the mother should clean the area, wash hands with soap and water, and then administer ORS more slowly [2]. Vomiting does not mean treatment should stop; instead, ORS should continue in a controlled manner to prevent dehydration.
+ORS should not be stopped if the child vomits. According to the guidelines, if the child vomits, the mother should clean the child and area, wash hands with soap and water, and then give ORS more slowly [2]. Vomiting does not mean treatment should stop; instead, ORS should be continued carefully to prevent dehydration.
 
 Based on 1 official document(s) in the health library.
 
@@ -116,9 +117,16 @@ Aam health myths ki jaanchi hui list ke aadhar par (WHO TB Fact Sheet, NTEP, MoH
 ### मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए
 
 [फैक्ट चेक] भ्रांति
-BP सामान्य इसलिए है क्योंकि दवा काम कर रही है। अचानक बंद करने से BP खतरनाक रूप से बढ़ सकता है, पक्षाघात या हार्ट अटैक हो सकता है। खुराक में बदलाव केवल डॉक्टर ही कर सकते हैं।
+मलेरिया की दवा बुखार उतरते ही बंद नहीं करनी चाहिए। दवा का पूरा कोर्स पूरा करना जरूरी है, भले ही लक्छन सुधर जाएं [1]। दवा जल्दी बंद करने से संक्रमण वापस आ सकता है और दवा प्रतिरोधकता भी विकसित हो सकती है। इसलिए, निर्धारित उपचार पूरा करना चाहिए।
 
-आम स्वास्थ्य भ्रांतियों की जाँची गई सूची के आधार पर (WHO Hypertension, IHCI, MoHFW)।
+स्वास्थ्य लाइब्रेरी के 1 आधिकारिक दस्तावेज़ों के आधार पर।
+
+### malaria ki dawai bukhar utarte hi band kar do
+
+[Fact check] MYTH (GALAT)
+Malaria ki dawai bukhar utarne par band nahi karni chahiye [1]. Dawai poora course khatam hone tak leni chahiye, warna malaria wapas ho sakta hai ya dawai ke liye parasite resistant ho sakte hain. Doctor ke dwara diye gaye purane nirdeshon ke anusaar ilaj poora karna zaroori hai, chahe bukhar khatam ho gaya ho.
+
+Health library ke 1 official document(s) ke aadhar par.
 
 ### Polio drops can make children infertile later in life
 
@@ -130,7 +138,7 @@ Based on a curated list of common health myths checked against PIB Fact Check, W
 ### दस्त में बच्चे को खाना बंद कर देना चाहिए
 
 [फैक्ट चेक] भ्रांति
-दस्त के दौरान बच्चे को खाना बंद नहीं करना चाहिए। स्रोत [3] और [5] में स्पष्ट रूप से कहा गया है कि दस्त के दौरान भी बच्चे को सामान्य और आसानी से पचने वाला भोजन जारी रखना चाहिए, क्योंकि इससे बच्चे को तेजी से ठीक होने में मदद मिलती है। स्तनपान भी जारी रखना चाहिए और अधिक बार करना चाहिए।
+दस्त के दौरान बच्चे को खाना बंद नहीं करना चाहिए। स्रोत [3] और [5] स्पष्ट रूप से कहते हैं कि दस्त के दौरान भी बच्चे को सामान्य और आसानी से पचने वाला भोजन जारी रखना चाहिए, क्योंकि यह बच्चे को तेजी से ठीक होने में मदद करता है। स्तनपान भी जारी रखा जाना चाहिए और बढ़ाया जाना चाहिए।
 
 स्वास्थ्य लाइब्रेरी के 2 आधिकारिक दस्तावेज़ों के आधार पर।
 
@@ -165,7 +173,7 @@ Based on a curated list of common health myths checked against WHO Diarrhoeal Di
 ### TB ka ilaaj poora karna zaroori hai, beech mein dawai nahi chhodni chahiye
 
 [Fact check] SACH (VERIFIED)
-Haan, TB ka ilaaj poora karna bahut zaroori hai aur beech mein dawai nahi chhodni chahiye [1]. Agar ilaj adhura chhod diya jaye, to mariz ko zyada takleef ho sakti hai, maut ka khatra badh sakta hai aur drug-resistant TB fail sakta hai [1]. Sahi dose aur sahi samay tak dawai lena hi ilaaj ki safalta ki kunji hai.
+Haan, TB ka ilaaj poora karna zaroori hai, beech mein dawai nahi chhodni chahiye [1]. Agar dawai beech mein chhod di jaye to TB ke andar drug resistance ho sakta hai aur ise dusron tak phailane ka khatra badh jata hai. Sahi dose aur sahi samay tak ilaj karna chahiye taki mariz thik ho aur samudayai svarashta bani rahe.
 
 Health library ke 1 official document(s) ke aadhar par.
 
@@ -186,7 +194,7 @@ Based on 2 official document(s) in the health library.
 ### Zinc is given to children with diarrhoea
 
 [Fact check] VERIFIED
-The sources confirm that zinc is given to children with diarrhoea. Zinc supplements are recommended for children aged 2 months to 5 years for 14 days, even if diarrhoea stops [1][4][5]. It helps in recovery and is to be given along with ORS.
+Zinc is given to children with diarrhoea for 14 days, even if diarrhoea stops, as it helps in recovery and prevents further episodes [1]. It is recommended for children aged 2 months to 5 years [5]. Both ORS and zinc are standard treatment for diarrhoea in this age group [4].
 
 Based on 3 official document(s) in the health library.
 

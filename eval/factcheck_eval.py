@@ -35,6 +35,7 @@ CLAIMS = [
     ("saanp kaatne par zakhm se zeher choos lena chahiye", FALSE),
     ("TB chhoone se ya bartan share karne se failta hai", FALSE | {"PARTLY_TRUE"}),
     ("मलेरिया की दवा बुखार उतरते ही बंद कर देनी चाहिए", FALSE),
+    ("malaria ki dawai bukhar utarte hi band kar do", FALSE),
     ("Polio drops can make children infertile later in life", FALSE),
     ("दस्त में बच्चे को खाना बंद कर देना चाहिए", FALSE),
     ("Drinking lemon water every morning burns belly fat", FALSE | {"NOT_ENOUGH_EVIDENCE"}),
@@ -66,6 +67,10 @@ def main():
         problems = [] if r.verdict in ok else [f"verdict {r.verdict}, expected {'/'.join(sorted(ok))}"]
         if checks.gives_dose(r.explanation):
             problems.append("medicine amount")
+        # Added after the live S5 check: a malaria claim got the BP myth's explanation with the right verdict.
+        claim_diseases, text_diseases = verifier._disease_keys(claim), verifier._disease_keys(r.explanation)
+        if claim_diseases and text_diseases and not claim_diseases & text_diseases:
+            problems.append(f"explanation is about {sorted(text_diseases)}, claim about {sorted(claim_diseases)}")
         rows.append({"kind": "fact check", "claim": claim, "verdict": r.verdict, "basis": r.basis,
                      "seconds": round(time.time() - start, 1), "text": r.text(), "problems": problems})
     for claim in PLAIN_MYTHS:

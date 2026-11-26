@@ -331,6 +331,7 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 | 2026-11-26 10:31 | Deployed commit `9a4754e` (S4b) | trusted-website and general tiers | Healthy; live checks: pimples -> MedlinePlus, wet hair -> labelled general answer, poem declined in 1.2 s, low mood -> model safety check gave the Tele-MANAS reply; but an antibiotic was named from a CDC page for clinicians (fixed next) | backup `/opt/healthbot-backups/pre-9a4754e-20261126-103118.tgz` |
 | 2026-11-26 10:39 | Deployed commit `06a8123` (S4b fix: no medicine choice outside the library, clinician pages skipped) | live check found an antibiotic named from a CDC page for clinicians | Healthy; antibiotic question -> "a doctor must choose" (1.1 s); pimples -> MedlinePlus; wet hair -> labelled general answer; capital of India declined (0.9 s); group copy 200; 4.9 GB RAM free | backup `/opt/healthbot-backups/pre-06a8123-20261126-103940.tgz` |
 | 2026-11-27 00:01 | Deployed commit `db0adc3` (medicine-choice rule everywhere) | "which medicine for my headache" was answered from the dengue guideline | Live: headache (Hinglish, Hindi) and "which antibiotic for typhoid" -> "a doctor must choose" in 1-2.5 s; dengue medicine question -> library answer (paracetamol, amount from ASHA/doctor); TB medicine question lists the standard TB drugs from the guideline without amounts; group copy 200; ~5 GB RAM free | backup `/opt/healthbot-backups/pre-db0adc3-20261127-000109.tgz` |
+| 2026-11-27 00:43 | Deployed commit `7b8aead` (S5) | fact-check on the library, no LaBSE in v2 | Healthy; LaBSE not in the process (only e5 mapped); available RAM 4.93 -> 5.04 GB; live: papaya -> curated PARTLY TRUE, ORS-vomit -> library MYTH with citation, plain "lehsun ... dengue" -> curated MYTH, lemon water -> labelled LIKELY MYTH, no confidence shown; but a malaria claim got the BP myth's explanation (fixed next) | backup `/opt/healthbot-backups/pre-7b8aead-20261127-004301.tgz` |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
@@ -662,9 +663,18 @@ A plain sentence (no "fact check") is judged only by step 1, as in v1, so ordina
    (licence pages), National Health Portal 2/6 (login pages), AYUSH 1/6. Added PIB and ICMR; AYUSH left out on
    purpose (traditional-medicine research tends to support the remedy claims being checked).
 
-### Result (`eval/results/s5_factcheck.md`): 31 of 31 as expected
+7. **Live check after the deploy: right verdict, wrong explanation.** "मलेरिया की दवा बुखार उतरते ही बंद कर देनी
+   चाहिए" matched the curated "stop BP medicine once normal" myth and showed its BP text (verdict MYTH was right).
+   BP had no disease word, so the conflict check could not see malaria vs BP. Added bp / blood pressure /
+   hypertension / बीपी / रक्तचाप; malaria and TB "stop the medicine" claims now go to the library judge. The
+   evaluation now also fails any explanation about a different disease than the claim (it only checked verdicts).
+8. **RAM.** LaBSE is no longer in the live process (only e5 is mapped), but the saving is small: available memory
+   4.93 -> 5.04 GB; the process stays about 2.1 GB (PyTorch and e5 dominate). The earlier 0.5 GB estimate was wrong.
 
-- 22 fact-check claims (7 from v1 tests, 9 new false, 6 true; English, Hindi, Hinglish): all right. 14 answered by
+### Result (`eval/results/s5_factcheck.md`): 32 of 32 as expected (after the fix)
+
+- 23 fact-check claims (7 from v1 tests, 10 new false, 6 true; English, Hindi, Hinglish): all right, and every
+  explanation is about the claim's own disease. 14 answered by
   the curated list (0-1 s), 6 by the library with citations (1-4 s), 1 by the model's labelled view (lemon water,
   LIKELY MYTH, 8.5 s).
 - 6 plain myth sentences detected; 3 unknown plain claims correctly not judged.
