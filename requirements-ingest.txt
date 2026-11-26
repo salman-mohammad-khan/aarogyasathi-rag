@@ -1,6 +1,6 @@
 # Offline tools for building the document library (python -m ingest.build_chunks). Not needed by the web app.
 # Exact versions used to build the library on 2026-11-25.
-pypdf==6.10.2
+pypdf==6.21.4
 PyYAML==6.0.3
 # The search and answer libraries (qdrant-client, rank-bm25, boto3, langchain-core, langchain-aws) are in
 # requirements.txt since S4, and trafilatura and langchain-text-splitters since S4b, because the web app uses them;
