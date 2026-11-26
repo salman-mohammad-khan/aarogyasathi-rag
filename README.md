@@ -25,7 +25,7 @@ rebuild around retrieval-augmented generation, documented step by step in [`docs
 *Left to right: a cited answer from the national dengue guideline, a forwarded myth checked, and an emergency reply.
 Captured from the live site.*
 
-**Demo video** (__VIDEO_SECONDS__ s): a cited answer, Hinglish, a dose question, a fact-check, a trusted-website answer
+**Demo video** (87 s): a cited answer, Hinglish, a dose question, a fact-check, a trusted-website answer
 and an emergency. [Watch or download the MP4](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4).
 
 [![Demo preview](docs/demo-preview.gif)](https://github.com/salman-mohammad-khan/aarogyasathi-rag/raw/main/docs/demo.mp4)
