@@ -38,11 +38,22 @@ Reply language for this message: {language}. Write the whole answer in {language
 
 ANSWER_PROMPT = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("human", HUMAN_PROMPT)])
 
+# Tier 2 (trusted website): the page was found for this question, so a partial answer is still useful. Without
+# this line the model answered NOT_IN_SOURCES to "How can I stop hair fall?" from MedlinePlus's hair loss page,
+# which does give home-care advice.
+WEB_HUMAN_PROMPT = HUMAN_PROMPT.replace(
+    "\n\nQuestion:",
+    "\n\nThese sources are one page from a trusted public-health website, found for this question. Use what the "
+    f"page says that helps with the question, even if it answers only part of it. Reply {NOT_IN_SOURCES} only if "
+    "the page is about something else.\n\nQuestion:")
+WEB_ANSWER_PROMPT = ChatPromptTemplate.from_messages([("system", SYSTEM_PROMPT), ("human", WEB_HUMAN_PROMPT)])
+
 
 def format_sources(chunks: list[dict]) -> str:
     """Numbered source blocks: "[1] Title, page 14 (section)" followed by the chunk text."""
     blocks = []
     for n, chunk in enumerate(chunks, start=1):
-        where = f"page {chunk['page']}" + (f", {chunk['section']}" if chunk.get("section") else "")
+        where = (f"page {chunk['page']}" if chunk.get("page") else chunk.get("publisher") or "web page") + \
+            (f", {chunk['section']}" if chunk.get("section") else "")
         blocks.append(f"[{n}] {chunk['title']}, {where}\n{chunk['text']}")
     return "\n\n".join(blocks)

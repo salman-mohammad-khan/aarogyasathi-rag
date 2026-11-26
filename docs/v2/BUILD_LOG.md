@@ -505,3 +505,68 @@ and undone at once. Live checks after the deploy: English, Hindi and Hinglish qu
 1.4-3.8 s; a dose question had its amounts removed; "protein powder" answered as not covered; an instruction
 override was refused; "mere papa ko seene mein dard" got the emergency reply in 0 ms; the page shows the numbered,
 linked sources and "Answered from the official health library, with citations".
+
+---
+
+## S4b: answers beyond the library (2026-11-26)
+
+**Goal.** When the library has no answer, still help where it is safe: first a trusted public-health website (with
+its link), then, only for low-risk health questions, short general information with a clear warning. Decided by him:
+the allowlist, live search, risk-gated general answers, coloured labels.
+
+```
+library says "not covered"
+  -> risk label (rules, then Gemma): NOT_HEALTH -> declined at once (0.4-0.5 s, no web search)
+  -> tier 2: web search on WHO / MoHFW / NHM / NHS / CDC / MedlinePlus -> read page -> same answer chain and checks
+  -> tier 3: only if the label is LOW -> 50-90 word general answer + fixed "not from a verified source" note
+  -> otherwise "not covered, ask your ASHA worker or doctor"
+```
+
+### Files
+
+| File | Job |
+|---|---|
+| `app/answer/trusted_web.py` | `TRUSTED_SITES`, `publisher()` (subdomains allowed, look-alike hosts refused), `search_trusted()` (ddgs, engines auto/bing/brave/mojeek in turn, 12 s budget), `read_page()` (HTML only, 6 s, 3 MB cap, refuses redirects off the allowlist; trafilatura), `split_page()`, `WebSearcher` (same `search()` as the library, so `Answerer(WebSearcher())` is tier 2) |
+| `app/answer/general.py` | `HIGH_RISK` rules, `RISK_PROMPT` (NOT_HEALTH / HIGH / LOW), `risk_label()`, `general_answer()` with dose, language and leak checks, `GENERAL_NOTE` in 3 languages |
+| `app/answer/outside.py` | `OutsideLibrary.answer()`: the tier order above |
+| `app/answer/prompt.py` | `WEB_ANSWER_PROMPT`: like the library prompt plus "use what the page says that helps, even if partial" |
+| `app/answer/chain.py` | `Answer.tier`; `build_chain`/`Answerer` take a prompt |
+| `app/retrieval/rewrite.py` | `to_english_cached()`: the tier-2 search reuses the library's English rewrite (no second model call) |
+| `app/pipeline.py` | Calls `outside` only on "not covered"; `tier` in the reply; Tele-MANAS 14416 line added to answers about low mood |
+| `app/main.py`, `web/chat.js`, `web/style.css` | `tier` in the API; coloured label on each answer (green library, blue trusted website, amber general); repeated citations of one web page listed once |
+| `eval/outside_eval.py` | 20 questions (10 low-risk, 6 high-risk, 4 not about health); checks allowed tier, allowlisted links, no amounts, language |
+| `tests/test_outside.py` | 26 tests with fakes: allowlist, engine fallback, page reading, risk rules, labels, tier order, non-health skips the search |
+
+Libraries: `ddgs==9.15.0` (already in the app), `trafilatura==2.4.0` and `langchain-text-splitters==1.2.0` moved
+from `requirements-ingest.txt` to `requirements.txt`.
+
+### What happened
+
+1. **Search from the server works but is flaky.** First test: 3 of 5 queries found pages from the server, 3 of 5
+   from the laptop (different ones failed). Trying other engines through ddgs when one returns nothing: 10 of 10
+   found a trusted page from the server, 2-10 s.
+2. **Too strict on web pages.** "How can I stop hair fall?" got NOT_IN_SOURCES from MedlinePlus's hair loss page,
+   which has a home-care section; the web prompt now allows a partial answer.
+3. **A poem got a "general answer".** With LOW/HIGH labels plus "non-health is HIGH", Gemma labelled "Write a poem
+   about the rain" LOW. A separate NOT_HEALTH label fixed it (13 of 13 hand-picked questions labelled right).
+4. **Non-health questions were slow** (10-13 s of web search before declining); the label now runs first, so they
+   are declined in 0.4-0.5 s.
+5. **Low mood without a helpline.** "I feel sad and hopeless every day" got a cited library answer (ASHA mental
+   health module) but no helpline; answers about low mood now end with Tele-MANAS 14416.
+
+### Result (`eval/results/s4b_outside.md`): 20 of 20 as expected
+
+- Low-risk (10): 7 answered from the library (it covers hair care, dandruff, sleep, eye strain, mouth ulcers,
+  back pain, water intake), 3 from a trusted website (MedlinePlus pimples, CDC/MedlinePlus warm water, kidney stones),
+  6-10 s for the web ones.
+- High-risk (6): none got a general answer (5 library, 1 trusted website: antibiotics for a throat infection, no
+  amounts).
+- Not about health (4): all declined in 0.4-0.5 s.
+- Tier 3 (general) was not needed by any of these 20; it is covered by the unit tests.
+
+### Open points
+
+- Trusted-website answers take 6-10 s (search + page + answer) and depend on free search engines that can stop
+  answering from a cloud server.
+- International sites name medicines (minoxidil, antacids) without amounts: allowed by the middle rule.
+- Tier 3 has not been seen live yet.

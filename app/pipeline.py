@@ -30,6 +30,21 @@ FIRST_AID_FLAGS = {"rabid_animal"}
 _HEAT_STROKE = re.compile(r"heat\s*stroke|heatstroke|sun\s*stroke|\bloo\b|लू", re.IGNORECASE)
 
 
+# Low mood is not an emergency (the self-harm rules handle that), but the answer should always point to the
+# government's free 24x7 mental-health line. Added after "I feel sad and hopeless every day" got a cited library
+# answer with no helpline (S4b check).
+_LOW_MOOD = re.compile(r"\b(sad|hopeless|depress\w*|anxiety|anxious|lonely|stress\w*|tension|udaas|udas|niraash|"
+                       r"nirash|ghabrahat|akela|akelapan)\b|उदास|निराश|घबराहट|तनाव|अकेला|अवसाद|डिप्रेशन", re.IGNORECASE)
+TELE_MANAS = {
+    "en": "If you feel low most days, you can talk to a trained counsellor free at Tele-MANAS: 14416 "
+          "(24x7, in many Indian languages).",
+    "hi": "अगर ज़्यादातर दिन मन उदास रहता है, तो टेली-मानस 14416 पर मुफ़्त में प्रशिक्षित काउंसलर से बात करें "
+          "(24x7, कई भारतीय भाषाओं में)।",
+    "hinglish": "Agar zyadatar din mann udaas rehta hai, to Tele-MANAS 14416 par free mein trained counsellor se baat "
+                "karein (24x7, kai Indian bhashaon mein).",
+}
+
+
 def needs_first_aid(text: str, red_flags: list[str]) -> bool:
     if red_flags and set(red_flags) <= FIRST_AID_FLAGS:
         return True
@@ -111,8 +126,11 @@ def _rules_first(text: str, session) -> dict | None:
     return None
 
 
-def process_message(text: str, session, answerer) -> dict:
-    """One chat message in, {"text", "meta"} out (same shape as the v1 router, plus meta["sources"])."""
+def process_message(text: str, session, answerer, outside=None) -> dict:
+    """One chat message in, {"text", "meta"} out (same shape as the v1 router, plus meta["sources"] and ["tier"]).
+
+    `outside` (S4b, app/answer/outside.py) is asked only when the library has no answer: trusted website, then
+    labelled general information for low-risk questions."""
     text = (text or "").strip()
     if not text:
         return _reply(kb.msg("en", "help"), "help", "en")
@@ -128,11 +146,17 @@ def process_message(text: str, session, answerer) -> dict:
         return reply
     if reply is None:
         question = with_context(text, session)
-        answer = answerer.answer(question, lang=question_language(text))
+        lang = question_language(text)
+        answer = answerer.answer(question, lang=lang)
+        if answer.status == "not_covered" and outside is not None:
+            answer = outside.answer(question, lang, answer.query, answer)
         session.set("last_question", question[:300])
         session.set("last_question_at", time.time())
-        reply = _reply(answer.text, "library_answer", answer.language, flow=answer.status, generator="v2",
-                       sources=answer.sources, query=answer.query, follow_up=question != text)
+        text_out = answer.text
+        if _LOW_MOOD.search(text) and answer.status != "error":
+            text_out += "\n\n" + TELE_MANAS[answer.language]
+        reply = _reply(text_out, "library_answer", answer.language, flow=answer.status, generator="v2",
+                       sources=answer.sources, query=answer.query, follow_up=question != text, tier=answer.tier)
     label = safety_llm.result(safety_check)
     if label in ("EMERGENCY", "SELF_HARM"):
         session.clear()

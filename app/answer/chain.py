@@ -66,6 +66,7 @@ class Answer:
     chunks: list[dict] = field(default_factory=list)  # all 5 chunks given to the model (for evaluation)
     raw_reply: str = ""  # the model's reply before the checks
     seconds: float = 0.0
+    tier: str = "library"  # library | trusted_web | general | none (S4b)
 
 
 def make_llm(model_id: str = ANSWER_MODEL_ID, region: str = REGION):
@@ -88,7 +89,7 @@ def _text_only(message) -> str:
     return "".join(block.get("text", "") for block in content if isinstance(block, dict) and block.get("type") == "text")
 
 
-def build_chain(searcher, llm):
+def build_chain(searcher, llm, prompt=ANSWER_PROMPT):
     """question dict in -> dict with search result, sources text, language and the model's raw reply out."""
     return (
         RunnablePassthrough.assign(found=RunnableLambda(lambda x: searcher.search(x["question"])))
@@ -96,7 +97,7 @@ def build_chain(searcher, llm):
             sources=RunnableLambda(lambda x: format_sources(x["found"].chunks)),
             language=RunnableLambda(lambda x: LANGUAGE_NAMES[x["lang"]]),
         )
-        | RunnablePassthrough.assign(reply=ANSWER_PROMPT | llm | RunnableLambda(_text_only) | StrOutputParser())
+        | RunnablePassthrough.assign(reply=prompt | llm | RunnableLambda(_text_only) | StrOutputParser())
     )
 
 
@@ -131,9 +132,9 @@ def default_llm():
 
 
 class Answerer:
-    def __init__(self, searcher, llm=None):
+    def __init__(self, searcher, llm=None, prompt=ANSWER_PROMPT):
         self.searcher = searcher
-        self.chain = build_chain(searcher, llm or default_llm())
+        self.chain = build_chain(searcher, llm or default_llm(), prompt)
 
     def answer(self, question: str, lang: str | None = None) -> Answer:
         """`lang` overrides detection, e.g. a Hinglish follow-up joined to an English question keeps Hinglish."""
