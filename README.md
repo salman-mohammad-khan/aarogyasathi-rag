@@ -182,10 +182,8 @@ The evaluation scripts call Bedrock and the web and cost well under $2 in total.
 
 ## Known limitations
 
-- The library is in English. Hindi and Hinglish questions are rewritten into English before the search (Hinglish
-  hit@5 93-100%), and answers come back in the user's language. Four older Hindi ASHA books are listed but left out on
-  purpose: their topics are covered by the English Integrated ASHA Modules A-C already in the library, and converting
-  them (an old non-Unicode font, one scanned book) could put wrong words into medical text.
+- The library is in English. Hindi and Hinglish work through translation; four Hindi ASHA documents are listed but not
+  used yet (three use an old non-Unicode font, one is scanned).
 - The test sets are small (tens of questions per kind): good for choosing between options, not a clinical accuracy
   figure. Some questions were written after looking at earlier results; the 30 hard questions and the 50 end-to-end
   messages were not used to tune anything.

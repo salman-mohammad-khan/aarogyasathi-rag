@@ -48,7 +48,7 @@
   layer: A
   licence: Government of India publication
   topics: [community health, tuberculosis, malaria, maternal health, newborn care]
-  exclude: "covered by the English Integrated ASHA Modules A-C (decided 2026-11-27); also a legacy non-Unicode Hindi font (Kruti Dev), so extracted text is unreadable"
+  exclude: "legacy non-Unicode Hindi font (Kruti Dev); extracted text is unreadable"
 
 - id: asha-reading-hi
   title: Reading Material for ASHA (Hindi)
@@ -59,7 +59,7 @@
   layer: A
   licence: Government of India publication
   topics: [community health]
-  exclude: "covered by the English Integrated ASHA Modules A-C (decided 2026-11-27); also a legacy non-Unicode Hindi font, so extracted text is unreadable"
+  exclude: "legacy non-Unicode Hindi font; extracted text is unreadable"
 
 - id: asha-module6-hi
   title: Skills that Save Lives, ASHA Module 6 (Hindi)
@@ -70,7 +70,7 @@
   layer: A
   licence: Government of India publication
   topics: [pregnancy, delivery, newborn care]
-  exclude: "covered by the English Integrated ASHA Modules A-C (decided 2026-11-27); also a scanned PDF without a text layer (would need OCR)"
+  exclude: "scanned PDF without a text layer (would need OCR)"
 
 - id: asha-module7-hi
   title: Skills that Save Lives, ASHA Module 7 (Hindi)
@@ -81,7 +81,7 @@
   layer: A
   licence: Government of India publication
   topics: [newborn care, child illness, nutrition]
-  exclude: "covered by the English Integrated ASHA Modules A-C (decided 2026-11-27); also a legacy non-Unicode Hindi font (Kruti Dev), so extracted text is unreadable"
+  exclude: "legacy non-Unicode Hindi font (Kruti Dev); extracted text is unreadable"
 
 - id: asha-ncd-module
   title: Module for ASHA on Non-Communicable Diseases
