@@ -104,7 +104,8 @@ Retrieved 2026-11-25. Layer A = community level, B = national guideline, C = WHO
 | nhm-idcf-2017 | [Intensified Diarrhoea Control Fortnight Guidelines (2017)](https://nhm.gov.in/images/pdf/IDCF-2017/IDCF_guidelines_2017.pdf) | NHM | 56 pages, 109 chunks |
 | who-* (17 pages) | WHO fact sheets: dengue, malaria, tuberculosis, typhoid, cholera, diarrhoeal disease, measles, rabies, hepatitis B, pneumonia, influenza, COVID-19, snakebite, anaemia, diabetes, hypertension, heat and health (`https://www.who.int/news-room/fact-sheets/detail/...`) | WHO | 1 page each, 176 chunks in total |
 
-**Listed but excluded** (kept in the manifest with the reason, downloaded, not chunked):
+**Listed but excluded** (kept in the manifest with the reason, downloaded, not chunked; final decision on 2026-11-27,
+see "Hindi ASHA PDFs: decision" at the end):
 
 | Id | Reason |
 |---|---|
@@ -160,9 +161,8 @@ some ASHA chunks are administrative (incentive tables). The full 20-chunk sample
 
 ### Open points
 
-1. **Hindi documents**: left out for now (decided 2026-11-25), to revisit once v2 works end to end: convert the
-   three legacy-font PDFs to Unicode (a known character mapping) and OCR the scanned Module 6. Until then Hindi
-   questions are searched through an English rewrite (S2).
+1. **Hindi documents**: left out for now (decided 2026-11-25), to revisit once v2 works end to end. **Closed
+   2026-11-27: left out for good**, see "Hindi ASHA PDFs: decision" at the end.
 2. **Administrative chunks** (ASHA incentives, programme logistics) could be filtered later if they show up in
    search results for health questions.
 3. On the development machine, installing `langchain-community` upgraded NumPy globally to 2.5.4; it was set back to
@@ -769,3 +769,33 @@ search engines return nothing; making the web step retry would add 10+ seconds t
 - GitHub: description and topics updated (LaBSE out; LangChain, Qdrant, hybrid search, BM25, Hindi, public health,
   retrieval-augmented generation in).
 - Resume bullets drafted for his approval (internship data folder); no resume changed yet.
+
+## Hindi ASHA PDFs: decision (2026-11-27)
+
+The four Hindi ASHA PDFs listed since S1 stay out of the library for good. Salman agreed after this check:
+
+| Id | Pages | Topics | Text problem |
+|---|---|---|---|
+| asha-induction-hi | 148 | Role of an ASHA, community health, health rights, mother and newborn basics, TB, malaria | Kruti Dev font (pypdf gives `vk'kk` for आशा) |
+| asha-reading-hi | 54 | General ASHA reading | A different legacy font, needs its own converter |
+| asha-module6-hi | 78 | Pregnancy, delivery, newborn care | Scanned, no text layer (needs OCR) |
+| asha-module7-hi | 89 | Newborn care, child illness, nutrition, family planning | Kruti Dev font; 16 pages are pictures only |
+
+**Why they are left out:**
+
+- **Same topics already covered.** The English Integrated ASHA Modules A-C (770 pages, 1,348 chunks, 41% of the
+  library) are the newer combined training set. Topic counts in their chunks: danger signs 75, breastfeeding 99,
+  contraception 73, low birth weight 32, kangaroo care 14, hypothermia 9, birth preparedness 8, colostrum 6.
+- **Hindi questions already work.** They are rewritten into English before the search (S2); Hinglish hit@5 is
+  93-100%, and answers are written in the user's language.
+- **Conversion risk.** Font converters often break vowel signs and half letters, and Hindi OCR misreads words. A
+  changed word in delivery or newborn advice is a safety problem, and 369 pages cannot be checked by hand.
+- **Search could get worse.** The keyword (BM25) side searches the English rewrite and would miss Hindi chunks, while
+  the vector side would find them, so near-duplicate Hindi passages could push good English results down.
+- **Older material.** These books predate the integrated modules.
+- **Cost.** About a day of work (two font converters, OCR, spot checks, rebuilding the index, rerunning the
+  evaluation), for answers that would mostly be the same.
+
+**Changed:** the manifest `exclude` reasons now say why (topics covered, then the text problem); README and landing
+page "known limits" say the books are left out on purpose. No code, index or answer changed.
+
