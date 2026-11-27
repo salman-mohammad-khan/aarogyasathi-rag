@@ -339,6 +339,7 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 | 2026-11-27 01:43 | Deployed `4fd6f11` (main after PR #38: + demo video, screenshots, og image) | final S6 state | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; landing page shows 49/50, 544, 98-100%; `/static/og.png` 200; video plays in the page (87 s) | backup `/opt/healthbot-backups/pre-4fd6f11-20261127-014347.tgz` |
 | 2026-11-27 09:27 | Deployed `8a4dec4` (PR #40: a docs/landing-page text change made by mistake, not requested) | - | Healthy | backup `/opt/healthbot-backups/pre-8a4dec4-20261127-092754.tgz` |
 | 2026-11-27 09:39 | Deployed `7b7f4f8` (reverts PR #40 and #41; files identical to `e8cdb76`) | undo the mistaken change | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; landing page back to the 4fd6f11 text; group copy :8000 200 | backup `/opt/healthbot-backups/pre-7b7f4f8-20261127-093903.tgz` |
+| 2026-11-27 13:22 | Deployed `2d934ec` (PR #44: landing-page known-limits line shortened; README same in #43) | his request | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; new line live; group copy :8000 200 | backup `/opt/healthbot-backups/pre-2d934ec-20261127-132201.tgz` |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
