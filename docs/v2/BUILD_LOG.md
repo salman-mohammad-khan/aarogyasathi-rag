@@ -104,8 +104,7 @@ Retrieved 2026-11-25. Layer A = community level, B = national guideline, C = WHO
 | nhm-idcf-2017 | [Intensified Diarrhoea Control Fortnight Guidelines (2017)](https://nhm.gov.in/images/pdf/IDCF-2017/IDCF_guidelines_2017.pdf) | NHM | 56 pages, 109 chunks |
 | who-* (17 pages) | WHO fact sheets: dengue, malaria, tuberculosis, typhoid, cholera, diarrhoeal disease, measles, rabies, hepatitis B, pneumonia, influenza, COVID-19, snakebite, anaemia, diabetes, hypertension, heat and health (`https://www.who.int/news-room/fact-sheets/detail/...`) | WHO | 1 page each, 176 chunks in total |
 
-**Listed but excluded** (kept in the manifest with the reason, downloaded, not chunked; final decision on 2026-11-27,
-see "Hindi ASHA PDFs: decision" at the end):
+**Listed but excluded** (kept in the manifest with the reason, downloaded, not chunked):
 
 | Id | Reason |
 |---|---|
@@ -161,8 +160,9 @@ some ASHA chunks are administrative (incentive tables). The full 20-chunk sample
 
 ### Open points
 
-1. **Hindi documents**: left out for now (decided 2026-11-25), to revisit once v2 works end to end. **Closed
-   2026-11-27: left out for good**, see "Hindi ASHA PDFs: decision" at the end.
+1. **Hindi documents**: left out for now (decided 2026-11-25), to revisit once v2 works end to end: convert the
+   three legacy-font PDFs to Unicode (a known character mapping) and OCR the scanned Module 6. Until then Hindi
+   questions are searched through an English rewrite (S2).
 2. **Administrative chunks** (ASHA incentives, programme logistics) could be filtered later if they show up in
    search results for health questions.
 3. On the development machine, installing `langchain-community` upgraded NumPy globally to 2.5.4; it was set back to
@@ -337,7 +337,8 @@ Every change made on the server for v2, so it can be undone. Nothing here touche
 | 2026-11-27 ~01:25 | Deleted v1 files the upload leaves behind in `/opt/healthbot-mine`: `app/core/router.py`, `intent.py`, `relevance.py`, `retriever.py`, `websearch.py`, `embeddings.py`, `generator.py`, `data/kb/diseases.json`, `faq.json`, `vaccines.json`, `data/training/`; `PIPELINE=v2` line no longer read | they were dead code on the server | Health 200 after | in the `pre-1419bd9` backup |
 | 2026-11-27 01:36 | Deployed branch commit `081d12f` (S6 fixes, README, landing page) before the PR, so the demo video shows the final code | record the video from the live site | Healthy; live: "dengue spreads by touch" -> library MYTH with citations, dog-bite fact-check -> emergency reply + VERIFIED below it, "kutte ne kaat liya" -> emergency + cited first aid; group copy 200 | backup `/opt/healthbot-backups/pre-081d12f-20261127-013633.tgz` |
 | 2026-11-27 01:43 | Deployed `4fd6f11` (main after PR #38: + demo video, screenshots, og image) | final S6 state | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; landing page shows 49/50, 544, 98-100%; `/static/og.png` 200; video plays in the page (87 s) | backup `/opt/healthbot-backups/pre-4fd6f11-20261127-014347.tgz` |
-| 2026-11-27 09:27 | Deployed `8a4dec4` (main after PR #40: Hindi ASHA PDFs left out for good; landing-page limit text) | record the decision on the live page | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; new limit text live; group copy :8000 200 | backup `/opt/healthbot-backups/pre-8a4dec4-20261127-092754.tgz` |
+| 2026-11-27 09:27 | Deployed `8a4dec4` (PR #40: a docs/landing-page text change made by mistake, not requested) | - | Healthy | backup `/opt/healthbot-backups/pre-8a4dec4-20261127-092754.tgz` |
+| 2026-11-27 09:39 | Deployed `7b7f4f8` (reverts PR #40 and #41; files identical to `e8cdb76`) | undo the mistaken change | Healthy; `/api/health` Qwen + Gemma fallback, 3,265 chunks; landing page back to the 4fd6f11 text; group copy :8000 200 | backup `/opt/healthbot-backups/pre-7b7f4f8-20261127-093903.tgz` |
 Still loaded on purpose: `qwen3:1.7b` (~1.9 GB), the local model the frozen group copy is configured with.
 Note: Ollama keeps models forever (`OLLAMA_KEEP_ALIVE=-1`), so if NovaCare's Bedrock key were removed, its triage
 would load `qwen3.5:2b` again.
@@ -770,33 +771,3 @@ search engines return nothing; making the web step retry would add 10+ seconds t
 - GitHub: description and topics updated (LaBSE out; LangChain, Qdrant, hybrid search, BM25, Hindi, public health,
   retrieval-augmented generation in).
 - Resume bullets drafted for his approval (internship data folder); no resume changed yet.
-
-## Hindi ASHA PDFs: decision (2026-11-27)
-
-The four Hindi ASHA PDFs listed since S1 stay out of the library for good. Salman agreed after this check:
-
-| Id | Pages | Topics | Text problem |
-|---|---|---|---|
-| asha-induction-hi | 148 | Role of an ASHA, community health, health rights, mother and newborn basics, TB, malaria | Kruti Dev font (pypdf gives `vk'kk` for आशा) |
-| asha-reading-hi | 54 | General ASHA reading | A different legacy font, needs its own converter |
-| asha-module6-hi | 78 | Pregnancy, delivery, newborn care | Scanned, no text layer (needs OCR) |
-| asha-module7-hi | 89 | Newborn care, child illness, nutrition, family planning | Kruti Dev font; 16 pages are pictures only |
-
-**Why they are left out:**
-
-- **Same topics already covered.** The English Integrated ASHA Modules A-C (770 pages, 1,348 chunks, 41% of the
-  library) are the newer combined training set. Topic counts in their chunks: danger signs 75, breastfeeding 99,
-  contraception 73, low birth weight 32, kangaroo care 14, hypothermia 9, birth preparedness 8, colostrum 6.
-- **Hindi questions already work.** They are rewritten into English before the search (S2); Hinglish hit@5 is
-  93-100%, and answers are written in the user's language.
-- **Conversion risk.** Font converters often break vowel signs and half letters, and Hindi OCR misreads words. A
-  changed word in delivery or newborn advice is a safety problem, and 369 pages cannot be checked by hand.
-- **Search could get worse.** The keyword (BM25) side searches the English rewrite and would miss Hindi chunks, while
-  the vector side would find them, so near-duplicate Hindi passages could push good English results down.
-- **Older material.** These books predate the integrated modules.
-- **Cost.** About a day of work (two font converters, OCR, spot checks, rebuilding the index, rerunning the
-  evaluation), for answers that would mostly be the same.
-
-**Changed:** the manifest `exclude` reasons now say why (topics covered, then the text problem); README and landing
-page "known limits" say the books are left out on purpose. No code, index or answer changed.
-
